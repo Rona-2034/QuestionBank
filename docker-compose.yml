@@ -1,0 +1,32 @@
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: examxx
+      MYSQL_ROOT_PASSWORD: examxx-root-password
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -pexamxx-root-password"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      EXAMXX_DB_URL: jdbc:mysql://mysql:3306/examxx?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai
+      EXAMXX_DB_USERNAME: root
+      EXAMXX_DB_PASSWORD: examxx-root-password
+    depends_on:
+      mysql:
+        condition: service_healthy
+    volumes:
+      - uploads-data:/var/lib/examxx/uploads
+
+volumes:
+  mysql-data:
+  uploads-data:
