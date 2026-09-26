@@ -7,8 +7,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.FileSystemXmlApplicationContext;
 
@@ -26,7 +26,7 @@ import com.extr.domain.question.UserQuestionHistory;
  * @author scar
  * 
  */
-@Ignore("Legacy environment-coupled test suite retained for reference only.")
+@Disabled("Legacy environment-coupled test suite retained for reference only.")
 public class PracticeServiceTest {
 
 	@Test

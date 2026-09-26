@@ -11,8 +11,7 @@ import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.ibatis.binding.MapperMethod.MapperParamMap;
-import org.apache.ibatis.executor.parameter.DefaultParameterHandler;
+import org.apache.ibatis.binding.MapperMethod.ParamMap;
 import org.apache.ibatis.executor.parameter.ParameterHandler;
 import org.apache.ibatis.executor.statement.RoutingStatementHandler;
 import org.apache.ibatis.executor.statement.StatementHandler;
@@ -25,12 +24,13 @@ import org.apache.ibatis.plugin.Intercepts;
 import org.apache.ibatis.plugin.Invocation;
 import org.apache.ibatis.plugin.Plugin;
 import org.apache.ibatis.plugin.Signature;
+import org.apache.ibatis.scripting.defaults.DefaultParameterHandler;
 import java.sql.Connection;
 
 
 @Intercepts({
-	@Signature(method = "prepare",type = StatementHandler.class,args = {
-		Connection.class
+	@Signature(method = "prepare", type = StatementHandler.class, args = {
+		Connection.class, Integer.class
 	})
 })
 public class MyInterceptor implements Interceptor {
@@ -46,9 +46,9 @@ public class MyInterceptor implements Interceptor {
 			BoundSql boundSql = delegate.getBoundSql();
 			log.info("拦截sql=" + boundSql.getSql());
 			//获取sql对应的参数
-			MapperParamMap<?> mapperParamMap = null;
+			ParamMap<?> mapperParamMap = null;
 			try{
-				mapperParamMap = (MapperParamMap<?>) boundSql.getParameterObject();
+				mapperParamMap = (ParamMap<?>) boundSql.getParameterObject();
 			}catch(Exception ex){
 				
 			}
@@ -144,7 +144,7 @@ public class MyInterceptor implements Interceptor {
 		ReflectUtil.setFieldValue(countBoundSql, "parameterObject", boundSql.getParameterObject());
 		ReflectUtil.setFieldValue(countBoundSql, "additionalParameters", ReflectUtil.getFieldValue(boundSql, "additionalParameters"));
 		ReflectUtil.setFieldValue(countBoundSql, "metaParameters", ReflectUtil.getFieldValue(boundSql, "metaParameters"));
-		MapperParamMap<?> mapperParamMap = (MapperParamMap<?>) boundSql.getParameterObject();
+		ParamMap<?> mapperParamMap = (ParamMap<?>) boundSql.getParameterObject();
 
 		
 		ParameterHandler parameterHandler = new DefaultParameterHandler(mappedStatement, mapperParamMap, countBoundSql);

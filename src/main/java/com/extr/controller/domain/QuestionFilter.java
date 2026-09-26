@@ -2,13 +2,10 @@ package com.extr.controller.domain;
 
 import java.io.Serializable;
 
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Ocelot
  * @date 2014年6月8日 下午10:15:55
  */
-@XmlRootElement
 public class QuestionFilter implements Serializable {
 
 	private static final long serialVersionUID = -8784942836284858739L;

@@ -11,6 +11,7 @@ import java.util.TreeMap;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.poi.hssf.usermodel.HSSFCell;
+import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.hssf.usermodel.HSSFRow;
 import org.apache.poi.hssf.usermodel.HSSFSheet;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
@@ -107,13 +108,13 @@ public class ExcelUtil {
 							HSSFCell cell = row.getCell(j);
 							if (cell != null){
 								switch (cell.getCellType()){
-									case HSSFCell.CELL_TYPE_FORMULA:
+									case FORMULA:
 										break;
-									case HSSFCell.CELL_TYPE_NUMERIC:
-										cell.setCellType(HSSFCell.CELL_TYPE_STRING);
+									case NUMERIC:
+										cell.setCellType(CellType.STRING);
 										value += cell.getStringCellValue().trim();
 										break;
-									case HSSFCell.CELL_TYPE_STRING:
+									case STRING:
 										value += cell.getStringCellValue().trim();
 										break;
 									default:
@@ -161,13 +162,13 @@ public class ExcelUtil {
 							XSSFCell cell = row.getCell(j);
 							if (cell != null){
 								switch (cell.getCellType()){
-									case HSSFCell.CELL_TYPE_FORMULA:
+									case FORMULA:
 										break;
-									case HSSFCell.CELL_TYPE_NUMERIC:
-										cell.setCellType(HSSFCell.CELL_TYPE_STRING);
+									case NUMERIC:
+										cell.setCellType(CellType.STRING);
 										value += cell.getStringCellValue().trim();
 										break;
-									case HSSFCell.CELL_TYPE_STRING:
+									case STRING:
 										value += cell.getStringCellValue().trim();
 										break;
 									default:

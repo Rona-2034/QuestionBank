@@ -2,8 +2,6 @@ package com.extr.domain.question;
 
 import java.io.Serializable;
 import java.util.Date;
-
-import javax.xml.bind.annotation.XmlRootElement;
 /**
  * 用户评论
  * @author 郭亚坤

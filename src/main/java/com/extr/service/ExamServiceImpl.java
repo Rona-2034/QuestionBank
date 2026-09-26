@@ -6,9 +6,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,7 +33,7 @@ import com.extr.util.xml.Object2Xml;
 @Service("examService")
 public class ExamServiceImpl implements ExamService {
 
-	private static Logger log = Logger.getLogger(ExamServiceImpl.class);
+	private static final Logger log = LoggerFactory.getLogger(ExamServiceImpl.class);
 	@Autowired
 	private QuestionMapper questionMapper;
 	@Autowired

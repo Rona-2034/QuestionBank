@@ -7,8 +7,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.FileSystemXmlApplicationContext;
 
@@ -18,7 +18,7 @@ import com.extr.domain.question.QuestionContent;
 import com.extr.service.QuestionService;
 import com.extr.util.xml.Object2Xml;
 
-@Ignore("Requires developer-local files and is not suitable for CI.")
+@Disabled("Requires developer-local files and is not suitable for CI.")
 public class FileUploadTest {
 
 	@Test

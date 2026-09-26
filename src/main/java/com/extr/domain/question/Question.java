@@ -3,14 +3,11 @@ package com.extr.domain.question;
 import java.io.Serializable;
 import java.util.Date;
 import java.util.List;
-
-import javax.xml.bind.annotation.XmlRootElement;
 /**
  * 试题
  * @author 郭亚坤
  *
  */
-@XmlRootElement
 public class Question implements Serializable {
 
 	private static final long serialVersionUID = 6335675770371435246L;

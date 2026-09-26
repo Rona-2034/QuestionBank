@@ -4,9 +4,6 @@ import java.io.Serializable;
 import java.util.HashMap;
 import java.util.List;
 
-import javax.xml.bind.annotation.XmlRootElement;
-
-@XmlRootElement
 public class ExamFinishParam implements Serializable {
 	private static final long serialVersionUID = 4265690784518580278L;
 	private int exam_history_id;

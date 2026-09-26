@@ -3,7 +3,6 @@ package com.extr.security;
 import java.util.Date;
 import java.util.List;
 
-import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
@@ -12,7 +11,6 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 
-import com.extr.controller.ExamController;
 import com.extr.domain.user.Role;
 import com.extr.domain.user.User;
 import com.extr.persistence.UserMapper;

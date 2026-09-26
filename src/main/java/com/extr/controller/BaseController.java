@@ -8,12 +8,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.GrantedAuthorityImpl;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
@@ -96,11 +96,11 @@ public class BaseController {
 		UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 		Collection<? extends GrantedAuthority> grantedAuthorities = userDetails.getAuthorities();
 
-		if (grantedAuthorities.contains(new GrantedAuthorityImpl("ROLE_ADMIN"))) {
+		if (grantedAuthorities.contains(new SimpleGrantedAuthority("ROLE_ADMIN"))) {
 			return "redirect:admin/home";
-		} else if (grantedAuthorities.contains(new GrantedAuthorityImpl("ROLE_TEACHER"))) {
+		} else if (grantedAuthorities.contains(new SimpleGrantedAuthority("ROLE_TEACHER"))) {
 			return "redirect:teacher/home";
-		} else if (grantedAuthorities.contains(new GrantedAuthorityImpl("ROLE_STUDENT"))) {
+		} else if (grantedAuthorities.contains(new SimpleGrantedAuthority("ROLE_STUDENT"))) {
 			this.appendBaseInfo(model);
 			
 			return "home";

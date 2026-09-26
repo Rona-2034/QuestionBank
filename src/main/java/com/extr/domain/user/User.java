@@ -4,14 +4,11 @@ import java.io.Serializable;
 import java.util.Date;
 import java.util.List;
 
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * 用户
  * @author 郭亚坤
  *
  */
-@XmlRootElement
 public class User implements Serializable {
 	private static final long serialVersionUID = 2866441053387084227L;
 	/**

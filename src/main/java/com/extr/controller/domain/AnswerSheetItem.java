@@ -2,9 +2,6 @@ package com.extr.controller.domain;
 
 import java.io.Serializable;
 
-import javax.xml.bind.annotation.XmlRootElement;
-
-@XmlRootElement
 public class AnswerSheetItem implements Serializable {
 	/**
 	 * 

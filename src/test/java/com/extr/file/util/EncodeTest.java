@@ -2,10 +2,10 @@ package com.extr.file.util;
 
 import java.io.UnsupportedEncodingException;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
-@Ignore("Legacy utility smoke test retained for reference only.")
+@Disabled("Legacy utility smoke test retained for reference only.")
 public class EncodeTest {
 
 	@Test

@@ -3,10 +3,10 @@ package com.extr.file.util;
 import java.io.File;
 import java.io.IOException;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
-@Ignore("Requires external PDF/SWF toolchain and local filesystem paths.")
+@Disabled("Requires external PDF/SWF toolchain and local filesystem paths.")
 public class Pdf2SwfTest {
 
 	@Test

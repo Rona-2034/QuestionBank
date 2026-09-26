@@ -6,37 +6,34 @@ import java.util.Map;
 
 import javax.sql.DataSource;
 
-import org.codehaus.jackson.map.ObjectMapper;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.web.FilterChainProxy;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@WebAppConfiguration("src/main/webapp")
-@ContextConfiguration(locations = {
-        "file:src/main/webapp/WEB-INF/spring/root-context.xml",
-        "file:src/main/webapp/WEB-INF/spring/security.xml",
-        "file:src/main/webapp/WEB-INF/spring/appServlet/servlet-context.xml" })
+@SpringBootTest
+@AutoConfigureMockMvc
+@ActiveProfiles("test")
 public class AppApiIntegrationTest {
 
     @Autowired
@@ -49,14 +46,14 @@ public class AppApiIntegrationTest {
     private MockMvc mockMvc;
     private ObjectMapper objectMapper;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
                 .addFilters(springSecurityFilterChain).build();
         objectMapper = new ObjectMapper();
         ResourceDatabasePopulator populator = new ResourceDatabasePopulator();
-        populator.addScript(new ClassPathResource("h2/e2e-schema.sql"));
-        populator.addScript(new ClassPathResource("h2/e2e-seed.sql"));
+        populator.addScript(new ClassPathResource("h2/legacy-schema.sql"));
+        populator.addScript(new ClassPathResource("h2/data.sql"));
         Connection connection = dataSource.getConnection();
         try {
             populator.populate(connection);
@@ -177,7 +174,8 @@ public class AppApiIntegrationTest {
                 .andReturn());
         List<Map<String, Object>> reportItems = castList(report.get("items"));
         assertEquals(2, reportItems.size());
-        assertTrue(((String) reportItems.get(0).get("html")).contains("正确答案"));
+        String html0 = (String) reportItems.get(0).get("html");
+        assertTrue(html0.contains("正确答案"));
 
         Map<String, Object> userCenter = readJson(mockMvc.perform(get(
                 "/api/app/student/user-center").session(session).header(
@@ -313,13 +311,15 @@ public class AppApiIntegrationTest {
 
     @SuppressWarnings("unchecked")
     private Map<String, Object> readJson(MvcResult mvcResult) throws Exception {
-        return objectMapper.readValue(mvcResult.getResponse().getContentAsString(),
+        return objectMapper.readValue(mvcResult.getResponse()
+                .getContentAsString(java.nio.charset.StandardCharsets.UTF_8),
                 Map.class);
     }
 
     @SuppressWarnings("unchecked")
     private List<Object> readJsonList(MvcResult mvcResult) throws Exception {
-        return objectMapper.readValue(mvcResult.getResponse().getContentAsString(),
+        return objectMapper.readValue(mvcResult.getResponse()
+                .getContentAsString(java.nio.charset.StandardCharsets.UTF_8),
                 List.class);
     }
 

@@ -4,12 +4,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import com.extr.util.Roulette;
 
-@Ignore("Legacy exploratory test retained for reference only.")
+@Disabled("Legacy exploratory test retained for reference only.")
 public class RouletteTest {
 
 	@Test

@@ -1,8 +1,5 @@
 package com.extr.domain.question;
 
-import javax.xml.bind.annotation.XmlRootElement;
-
-@XmlRootElement
 public class Field {
 
 	private int fieldId;

@@ -2,12 +2,9 @@ package com.extr.domain.user;
 
 import java.io.Serializable;
 import java.util.List;
-
-import javax.xml.bind.annotation.XmlRootElement;
 /**
  * 班组
  */
-@XmlRootElement
 public class Group implements Serializable {
 
 	private static final long serialVersionUID = -166573023634513538L;

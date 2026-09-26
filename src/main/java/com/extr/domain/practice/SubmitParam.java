@@ -2,13 +2,10 @@ package com.extr.domain.practice;
 
 import java.util.Date;
 
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Ocelot
  * @date 2014年8月3日 下午7:56:19
  */
-@XmlRootElement	
 public class SubmitParam {
 	private int questionId;
 	private String answer;
