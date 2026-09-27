@@ -1,6 +1,6 @@
 # 研发部题库
 
-企业内部电力题库与在线考试系统。
+企业内部题库与在线考试系统。
 
 ## 技术栈
 
@@ -14,12 +14,12 @@
 examxx-master/
   pom.xml                 Maven 构建（jar）
   Dockerfile / docker-compose.yml
-  scripts/                运维 / 集成脚本
+  scripts/                运维 / 集成脚本（当前目录为空，待补充）
   docs/                   全部规范与说明文档（交接入口：见《项目结构与技术架构.md》）
-  data/                   题库导入模板（*.xlsx）
+  data/                   各业务组题库数据文件（*.xlsx，非正式模板）
   frontend/               React 前端源码
   src/main/java           后端源码（config/controller/service/persistence/…）
-  src/main/resources      配置、MyBatis XML、H2 脚本、前端产物(static/resources/app)
+  src/main/resources      配置、MyBatis XML、H2 脚本、前端产物(static/resources/app)、导入模板(template/question.xlsx)
   src/test                后端集成/单元测试
 ```
 
@@ -55,7 +55,7 @@ EXAMXX_DB_PASSWORD='你的MySQL密码' \
        -jar target/examxx-0.0.1-SNAPSHOT.jar
 ```
 
-一键启动脚本见仓库根 `start.bat`；详细运维见 `docs/production-deployment.md`。
+一键启动/停止脚本（`start.bat` / `stop.bat`）放在仓库工作区外层（未纳入版本库，属本机运维脚本）；详细运维与发布流程见 `docs/production-deployment.md`，更新/回滚约定见 `docs/update-management.md`。
 
 ## 功能模块
 
@@ -80,3 +80,6 @@ EXAMXX_DB_PASSWORD='你的MySQL密码' \
 ## 文档入口
 
 交接与规范文档集中在 `docs/`，从《项目结构与技术架构.md》开始阅读。
+- 版本 / 分支 / 提交规范：《git-workflow.md》
+- 更新、上线、回滚操作约定：《update-management.md》
+- 部署运维：《production-deployment.md》
