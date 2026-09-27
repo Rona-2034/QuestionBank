@@ -282,10 +282,10 @@
 		useGeneratedKeys="true" keyProperty="id">
 		insert into et_question
 		(name,content,question_type_id,create_time,creator,
-		answer,analysis,reference,examing_point,keyword,points)
+		answer,analysis,reference,examing_point,keyword,points,difficulty)
 		values
 		(#{name},#{content},#{question_type_id},#{create_time},#{creator},
-		#{answer},#{analysis},#{referenceName},#{examingPoint},#{keyword},#{points})
+		#{answer},#{analysis},#{referenceName},#{examingPoint},#{keyword},#{points},#{difficulty})
 	</insert>
 
 	<delete id="deleteQuestionByQuestionId">

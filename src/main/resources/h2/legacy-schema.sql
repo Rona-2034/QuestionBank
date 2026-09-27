@@ -94,7 +94,7 @@ CREATE TABLE et_question (
   question_type_id INT NOT NULL,
   create_time TIMESTAMP,
   creator INT,
-  answer VARCHAR(255),
+  answer VARCHAR(2000),
   analysis CLOB,
   reference VARCHAR(255),
   examing_point VARCHAR(255),

@@ -1,6 +1,8 @@
 package com.extr.controller;
 
 import java.io.FileNotFoundException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -29,6 +31,11 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.stereotype.Controller;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.ui.ExtendedModelMap;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -633,6 +640,24 @@ public class AppApiController {
         }
 
         return filePathList.get(0);
+    }
+
+    @RequestMapping(value = "/admin/question-template", method = RequestMethod.GET)
+    public @ResponseBody ResponseEntity<byte[]> adminQuestionTemplate() {
+        String resourcePath = "template/question.xlsx";
+        try (InputStream in = new ClassPathResource(resourcePath).getInputStream()) {
+            byte[] data = in.readAllBytes();
+            org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+            headers.setContentType(MediaType
+                    .parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+            headers.setContentDisposition(ContentDisposition.attachment()
+                    .filename("question.xlsx", StandardCharsets.UTF_8).build());
+            return new ResponseEntity<byte[]>(data, headers, HttpStatus.OK);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<byte[]>(new byte[0],
+                    org.springframework.http.HttpStatus.NOT_FOUND);
+        }
     }
 
     @RequestMapping(value = "/admin/questions/import/{fieldId}", method = RequestMethod.POST)

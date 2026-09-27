@@ -121,7 +121,7 @@ export function AdminQuestionsPage() {
               onChange={(event) =>
                 setFilters((previous) => ({
                   ...previous,
-                  searchParam: event.target.value || 0,
+                  searchParam: event.target.value === '' ? 0 : Number(event.target.value),
                 }))
               }
             />
