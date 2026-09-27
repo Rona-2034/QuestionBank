@@ -82,7 +82,19 @@ public class QuestionServiceImpl implements QuestionService {
 	@Override
 	@Transactional
 	public void addQuestion(Question question) {
-		// TODO Auto-generated method stub
+		// 统一答案长度约束（添加页/导入页同源，均经此方法，保证 7 种题型规则一致）
+		String answer = question.getAnswer();
+		int typeId = question.getQuestion_type_id();
+		int maxLen;
+		switch (typeId) {
+			case 5:  maxLen = 255;  break;  // 简答
+			case 6:  maxLen = 2000; break;  // 论述
+			case 7:  maxLen = 2000; break;  // 分析
+			default: maxLen = 255;  break;  // 单选/多选/判断/填空
+		}
+		if (answer != null && answer.length() > maxLen) {
+			throw new IllegalArgumentException("参考答案过长：题型" + typeId + "最多 " + maxLen + " 个字符");
+		}
 		try {
 			questionMapper.insertQuestion(question);
 			for (Integer i : question.getPointList()) {
@@ -313,12 +325,17 @@ public class QuestionServiceImpl implements QuestionService {
 					question.setQuestion_type_id(7);
 
 				question.setAnalysis(map.get("解析"));
-				question.setAnswer(map.get("答案"));
+				String rawAnswer = map.get("答案");
+				question.setAnswer(rawAnswer);
 				if (question.getQuestion_type_id() == 3) {
-					if (map.get("答案").equals("对"))
-						question.setAnswer("T");
-					if (map.get("答案").equals("错"))
-						question.setAnswer("F");
+					// 判断题答案统一归一为 正确/错误（兼容模板里的 T/F、对/错 及添加页的 正确/错误）
+					if ("对".equals(rawAnswer) || "T".equalsIgnoreCase(rawAnswer)
+							|| "正确".equals(rawAnswer)) {
+						question.setAnswer("正确");
+					} else if ("错".equals(rawAnswer) || "F".equalsIgnoreCase(rawAnswer)
+							|| "错误".equals(rawAnswer)) {
+						question.setAnswer("错误");
+					}
 				}
 
 				KnowledgePoint kp = questionMapper.getKnowledgePointByPointNameAndFieldId(map.get("知识类"), fieldId);
@@ -339,6 +356,10 @@ public class QuestionServiceImpl implements QuestionService {
 				question.setAnswerStageCreator(userId);
 				question.setPoints(map.get("分值").equals("") ? 0 : Float
 						.parseFloat(map.get("分值")));
+				String difficultyStr = map.get("难度");
+				question.setDifficulty(difficultyStr == null
+						|| "".equals(difficultyStr.trim()) ? 0f : Float
+						.parseFloat(difficultyStr));
 				QuestionContent qc = new QuestionContent();
 
 				Iterator<String> it = map.keySet().iterator();
