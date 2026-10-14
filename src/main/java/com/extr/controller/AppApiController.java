@@ -642,16 +642,37 @@ public class AppApiController {
         return filePathList.get(0);
     }
 
+    @RequestMapping(value = "/student/files/question-image-upload", method = RequestMethod.POST)
+    public @ResponseBody String studentUploadQuestionImage(
+            HttpServletRequest request, HttpServletResponse response) {
+        UserInfo userInfo = getCurrentUser();
+        List<String> filePathList = new ArrayList<String>();
+        try {
+            filePathList = FileUploadUtil.uploadImg(request, response,
+                    userInfo == null ? null : userInfo.getUsername());
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+
+        if (filePathList == null || filePathList.size() == 0) {
+            return "系统错误";
+        }
+
+        return filePathList.get(0);
+    }
+
     @RequestMapping(value = "/admin/question-template", method = RequestMethod.GET)
     public @ResponseBody ResponseEntity<byte[]> adminQuestionTemplate() {
-        String resourcePath = "template/question.xlsx";
+        String resourcePath = "template/Template.xlsx";
         try (InputStream in = new ClassPathResource(resourcePath).getInputStream()) {
             byte[] data = in.readAllBytes();
             org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
             headers.setContentType(MediaType
                     .parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
             headers.setContentDisposition(ContentDisposition.attachment()
-                    .filename("question.xlsx", StandardCharsets.UTF_8).build());
+                    .filename("Template.xlsx", StandardCharsets.UTF_8).build());
             return new ResponseEntity<byte[]>(data, headers, HttpStatus.OK);
         } catch (Exception e) {
             e.printStackTrace();
@@ -1220,7 +1241,7 @@ public class AppApiController {
         payload.put("examHistoryId", Integer.valueOf(examHistory.getHistId()));
         payload.put("examPaperId", Integer.valueOf(examPaperId));
         payload.put("durationSeconds", Integer.valueOf(examPaper.getDuration() * 60));
-        payload.put("items", renderQuestionItems(questionList, buildBaseUrl(request)));
+        payload.put("items", renderStudentExamItems(questionList, buildBaseUrl(request)));
         return payload;
     }
 
@@ -1439,6 +1460,21 @@ public class AppApiController {
             Map<String, Object> item = new LinkedHashMap<String, Object>();
             item.put("question", question);
             item.put("html", new QuestionAdapter(question, baseUrl).getStringFromXML());
+            items.add(item);
+        }
+        return items;
+    }
+
+    /**
+     * 考生考试页专用渲染：不展示正确答案/出处/解析/考点
+     */
+    private List<Map<String, Object>> renderStudentExamItems(
+            List<QuestionQueryResult> questions, String baseUrl) {
+        List<Map<String, Object>> items = new ArrayList<Map<String, Object>>();
+        for (QuestionQueryResult question : questions) {
+            Map<String, Object> item = new LinkedHashMap<String, Object>();
+            item.put("question", question);
+            item.put("html", new QuestionAdapter(question, baseUrl).getUserExamPaper());
             items.add(item);
         }
         return items;

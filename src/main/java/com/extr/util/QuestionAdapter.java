@@ -663,17 +663,30 @@ public class QuestionAdapter {
 					.append("</span><br>");
 
 		sb.append("<span>  你的解答：</span>");
-		if (answerSheetItem.getQuestion_type_id() == 3) {
-			if (answerSheetItem.getAnswer().trim().equals("T"))
-				sb.append("<span>").append("对").append("</span>");
-			else if (answerSheetItem.getAnswer().trim().equals("F"))
-				sb.append("<span>").append("错").append("</span>");
-			else
+		if (answerSheetItem != null) {
+			if (answerSheetItem.getQuestion_type_id() == 3) {
+				if (answerSheetItem.getAnswer().trim().equals("T"))
+					sb.append("<span>").append("对").append("</span>");
+				else if (answerSheetItem.getAnswer().trim().equals("F"))
+					sb.append("<span>").append("错").append("</span>");
+				else
+					sb.append("<span>").append(answerSheetItem.getAnswer())
+							.append("</span>");
+			} else
 				sb.append("<span>").append(answerSheetItem.getAnswer())
 						.append("</span>");
-		} else
-			sb.append("<span>").append(answerSheetItem.getAnswer())
-					.append("</span>");
+			if (answerSheetItem.getImages() != null) {
+				for (String image : answerSheetItem.getImages()) {
+					if (image != null && !image.trim().equals("")) {
+						sb.append("<img class=\"answer-image\" src=\"")
+								.append(baseUrl).append(image)
+								.append("\" alt=\"学生上传图片\" />");
+					}
+				}
+			}
+		} else {
+			sb.append("<span>(未作答)</span>");
+		}
 		sb.append("</div>");
 		sb.append("<div class=\"answer-desc-detail\">");
 		sb.append("<label class=\"label label-info\">");

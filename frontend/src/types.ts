@@ -351,6 +351,7 @@ export interface AnswerSheetItemPayload {
   question_type_id: number;
   answer: string;
   point: number;
+  images?: string[];
 }
 
 export interface ExamResultPayload {
