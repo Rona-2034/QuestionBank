@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { fetchStudentExamHistory } from '../api';
 import type { StudentExamHistoryPayload } from '../types';
 
 export function StudentExamHistoryPage() {
+  const navigate = useNavigate();
   const [payload, setPayload] = useState<StudentExamHistoryPayload | null>(null);
   const [error, setError] = useState('');
 
@@ -36,6 +38,7 @@ export function StudentExamHistoryPage() {
                 <th>得分</th>
                 <th>创建时间</th>
                 <th>提交时间</th>
+                <th>操作</th>
               </tr>
             </thead>
             <tbody>
@@ -45,6 +48,15 @@ export function StudentExamHistoryPage() {
                   <td>{item.pointGet}</td>
                   <td>{item.createTime || '-'}</td>
                   <td>{item.submitTime || '-'}</td>
+                  <td>
+                    <button
+                      className="ghost-button"
+                      type="button"
+                      onClick={() => navigate(`/student/exam-report/${item.examPaperId}`)}
+                    >
+                      作答详情
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
