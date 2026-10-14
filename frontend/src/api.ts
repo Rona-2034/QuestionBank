@@ -68,6 +68,37 @@ async function request<T>(input: string, init?: RequestInit): Promise<T> {
   return payload as T;
 }
 
+/**
+ * 上传类接口：后端返回的是裸字符串（如文件路径），不是 JSON。
+ * 必须按文本解析，否则 response.json() 会在路径文本首字符处抛 "not valid JSON"。
+ */
+async function requestText(input: string, init?: RequestInit): Promise<string> {
+  const response = await fetch(resolveUrl(input), {
+    credentials: 'include',
+    headers: {
+      Accept: 'application/json',
+      ...(init?.headers || {}),
+    },
+    ...init,
+  });
+  const payload = await response.text();
+  if (!response.ok) {
+    let message = payload;
+    if (payload) {
+      try {
+        const parsed = JSON.parse(payload) as LegacyMessage;
+        if (parsed && parsed.messageInfo) {
+          message = parsed.messageInfo;
+        }
+      } catch {
+        // 响应体不是 JSON，保持原文
+      }
+    }
+    throw new Error(message || `HTTP ${response.status}`);
+  }
+  return payload;
+}
+
 export async function fetchMe(): Promise<AuthState> {
   return request<AuthState>('/api/app/auth/me');
 }
@@ -179,7 +210,7 @@ export async function createAdminQuestion(payload: Record<string, unknown>): Pro
 export async function uploadQuestionFile(file: File): Promise<string> {
   const formData = new FormData();
   formData.append('file', file);
-  return request<string>('/api/app/admin/files/question-upload', {
+  return requestText('/api/app/admin/files/question-upload', {
     method: 'POST',
     body: formData,
   });
@@ -188,7 +219,16 @@ export async function uploadQuestionFile(file: File): Promise<string> {
 export async function uploadQuestionImage(file: File): Promise<string> {
   const formData = new FormData();
   formData.append('file', file);
-  return request<string>('/api/app/admin/files/question-image-upload', {
+  return requestText('/api/app/admin/files/question-image-upload', {
+    method: 'POST',
+    body: formData,
+  });
+}
+
+export async function uploadStudentQuestionImage(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append('file', file);
+  return requestText('/api/app/student/files/question-image-upload', {
     method: 'POST',
     body: formData,
   });
