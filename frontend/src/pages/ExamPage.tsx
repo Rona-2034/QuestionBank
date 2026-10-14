@@ -1,8 +1,69 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { fetchExam, fetchExamReport, fetchExamResult, submitExam } from '../api';
-import type { AnswerSheetItemPayload, ExamPayload, ExamReportPayload, ExamResultPayload } from '../types';
-import { QuestionCommentPanel } from '../components/QuestionCommentPanel';
+import { fetchExam, submitExam, uploadStudentQuestionImage } from '../api';
+import type { AnswerSheetItemPayload, ExamPayload, ExamResultPayload } from '../types';
+
+function SubjectiveImageUpload({
+  questionId,
+  images,
+  onChange,
+}: {
+  questionId: number;
+  images: string[];
+  onChange: (questionId: number, images: string[]) => void;
+}) {
+  const fileRef = useRef<HTMLInputElement | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const handleFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) {
+      return;
+    }
+    setUploading(true);
+    try {
+      const path = await uploadStudentQuestionImage(file);
+      onChange(questionId, [...images, path]);
+    } catch (requestError) {
+      console.error(requestError);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="answer-image-tools">
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={(event) => void handleFile(event)}
+      />
+      <button
+        type="button"
+        className="ghost-button image-insert-button"
+        onClick={() => fileRef.current?.click()}
+        disabled={uploading}
+      >
+        {uploading ? '上传中...' : '插入图片'}
+      </button>
+      {images.map((image, index) => (
+        <span key={image} className="answer-image-chip">
+          <img src={image.startsWith('/') ? image : `/${image}`} alt={`答题图片${index + 1}`} />
+          <button
+            type="button"
+            aria-label="删除图片"
+            onClick={() => onChange(questionId, images.filter((_, i) => i !== index))}
+          >
+            ×
+          </button>
+        </span>
+      ))}
+    </div>
+  );
+}
 
 export function ExamPage() {
   const { examPaperId } = useParams();
@@ -10,7 +71,8 @@ export function ExamPage() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<ExamResultPayload | null>(null);
-  const [report, setReport] = useState<ExamReportPayload | null>(null);
+  const [imagesByQuestion, setImagesByQuestion] = useState<Record<number, string[]>>({});
+  const [answeredIds, setAnsweredIds] = useState<Record<number, boolean>>({});
   const itemRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
   useEffect(() => {
@@ -18,14 +80,8 @@ export function ExamPage() {
       return;
     }
     void fetchExam(examPaperId)
-      .then(async (examPayload) => {
+      .then((examPayload) => {
         setPayload(examPayload);
-        const examResult = await fetchExamResult(examPaperId);
-        setResult(examResult);
-        if (examResult.submitted) {
-          const examReport = await fetchExamReport(examPaperId);
-          setReport(examReport);
-        }
       })
       .catch((requestError) => {
         setError(requestError instanceof Error ? requestError.message : '加载失败');
@@ -49,21 +105,53 @@ export function ExamPage() {
     return root.querySelector<HTMLInputElement>('input[type="radio"]:checked')?.value || '';
   };
 
+  const refreshAnswered = () => {
+    if (!payload) {
+      return;
+    }
+    const next: Record<number, boolean> = {};
+    for (const item of payload.items) {
+      const questionId = item.question.questionId;
+      next[questionId] =
+        readAnswer(questionId, item.question.questionTypeId) !== '' ||
+        (imagesByQuestion[questionId] || []).length > 0;
+    }
+    setAnsweredIds(next);
+  };
+
+  useEffect(() => {
+    refreshAnswered();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [imagesByQuestion, payload]);
+
   const collectAnswerSheet = (): Record<number, AnswerSheetItemPayload> => {
     if (!payload) {
       return {};
     }
     return payload.items.reduce<Record<number, AnswerSheetItemPayload>>((current, item) => {
-      const answer = readAnswer(item.question.questionId, item.question.questionTypeId);
-      if (answer) {
-        current[item.question.questionId] = {
+      const questionId = item.question.questionId;
+      const answer = readAnswer(questionId, item.question.questionTypeId);
+      const images = imagesByQuestion[questionId] || [];
+      if (answer || images.length) {
+        current[questionId] = {
           question_type_id: item.question.questionTypeId,
           answer,
           point: item.question.questionPoint,
+          images,
         };
       }
       return current;
     }, {});
+  };
+
+  const addQuestionNo = (html: string, index: number) =>
+    html.replace(
+      '<span class="question-no"></span>',
+      `<span class="question-no">第${index + 1}题</span>`,
+    );
+
+  const scrollToQuestion = (questionId: number) => {
+    itemRefs.current[questionId]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const handleSubmit = async () => {
@@ -84,7 +172,6 @@ export function ExamPage() {
         as: answerSheet,
       });
       setResult(examResult);
-      setReport(await fetchExamReport(String(payload.examPaperId)));
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : '交卷失败');
     } finally {
@@ -127,73 +214,56 @@ export function ExamPage() {
             {submitting ? '正在交卷...' : '提交试卷'}
           </button>
           {result?.submitted ? (
-            <span className="status-note">
-              最近交卷：得分 {result.pointGet} / {result.paper.total_point}，{result.passed ? '已通过' : '未通过'}
-            </span>
+            <span className="status-note">交卷成功，可到「考试历史」的作答详情查看统计与答题记录</span>
           ) : null}
         </div>
       </section>
-      <section className="panel question-panel">
+      <section
+        className="panel question-panel"
+        onChange={() => refreshAnswered()}
+        onInput={() => refreshAnswered()}
+      >
         <ol className="question-render-list">
-          {payload.items.map((item) => (
+          {payload.items.map((item, index) => (
             <li key={item.question.questionId}>
               <div
                 ref={(node) => {
                   itemRefs.current[item.question.questionId] = node;
                 }}
-                dangerouslySetInnerHTML={{ __html: item.html }}
+                dangerouslySetInnerHTML={{ __html: addQuestionNo(item.html, index) }}
               />
-              <QuestionCommentPanel questionId={item.question.questionId} />
+              {item.question.questionTypeId >= 4 ? (
+                <SubjectiveImageUpload
+                  questionId={item.question.questionId}
+                  images={imagesByQuestion[item.question.questionId] || []}
+                  onChange={(questionId, images) =>
+                    setImagesByQuestion((previous) => ({ ...previous, [questionId]: images }))
+                  }
+                />
+              ) : null}
             </li>
           ))}
         </ol>
       </section>
-      {result?.submitted ? (
-        <section className="panel">
-          <div className="panel-heading">
-            <h2>考试结果</h2>
-            <span>{result.submitTime || '已提交'}</span>
-          </div>
-          <div className="hero-metrics">
-            <div className="metric-card">
-              <span>得分</span>
-              <strong>{result.pointGet}</strong>
-            </div>
-            <div className="metric-card">
-              <span>答对</span>
-              <strong>{result.right}</strong>
-            </div>
-            <div className="metric-card">
-              <span>答错</span>
-              <strong>{result.wrong}</strong>
+      {!result?.submitted ? (
+        <div className="answer-card-float">
+          <div className="answer-card-tab">答题卡</div>
+          <div className="answer-card-popup">
+            <div className="answer-card-title">共 {payload.items.length} 题 · 未答白色 / 已答橙色</div>
+            <div className="answer-card-grid">
+              {payload.items.map((item, index) => (
+                <button
+                  key={item.question.questionId}
+                  type="button"
+                  className={`answer-card-cell ${answeredIds[item.question.questionId] ? 'answered' : ''}`}
+                  onClick={() => scrollToQuestion(item.question.questionId)}
+                >
+                  {index + 1}
+                </button>
+              ))}
             </div>
           </div>
-          <div className="result-list">
-            {Object.entries(result.knowledgeStats || {}).map(([name, stat]) => (
-              <article key={name} className="practice-card">
-                <h3>{name}</h3>
-                <p>
-                  共 {stat.sum} 题，答对 {stat.rightTimes} 题，答错 {stat.wrongTimes} 题
-                </p>
-              </article>
-            ))}
-          </div>
-        </section>
-      ) : null}
-      {report?.items.length ? (
-        <section className="panel question-panel">
-          <div className="panel-heading">
-            <h2>答卷报告</h2>
-            <span>沿用旧系统报告模板渲染</span>
-          </div>
-          <ol className="question-render-list">
-            {report.items.map((item) => (
-              <li key={item.question.questionId}>
-                <div dangerouslySetInnerHTML={{ __html: item.html }} />
-              </li>
-            ))}
-          </ol>
-        </section>
+        </div>
       ) : null}
     </div>
   );

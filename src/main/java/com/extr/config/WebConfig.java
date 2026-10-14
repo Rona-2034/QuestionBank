@@ -18,7 +18,10 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        String legacyUploadLocation = "file:" + System.getProperty("user.dir")
+                + java.io.File.separator + "webapps" + java.io.File.separator;
         registry.addResourceHandler("/files/**")
-                .addResourceLocations(uploadDirectory.toUri().toString());
+                .addResourceLocations(uploadDirectory.toUri().toString())
+                .addResourceLocations(legacyUploadLocation);
     }
 }

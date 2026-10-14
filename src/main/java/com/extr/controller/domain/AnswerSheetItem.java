@@ -1,6 +1,7 @@
 package com.extr.controller.domain;
 
 import java.io.Serializable;
+import java.util.List;
 
 public class AnswerSheetItem implements Serializable {
 	/**
@@ -10,6 +11,7 @@ public class AnswerSheetItem implements Serializable {
 	private float point;
 	private int question_type_id;
 	private String answer;
+	private List<String> images;
 
 	public int getQuestion_type_id() {
 		return question_type_id;
@@ -33,6 +35,14 @@ public class AnswerSheetItem implements Serializable {
 
 	public void setAnswer(String answer) {
 		this.answer = answer;
+	}
+
+	public List<String> getImages() {
+		return images;
+	}
+
+	public void setImages(List<String> images) {
+		this.images = images;
 	}
 
 }

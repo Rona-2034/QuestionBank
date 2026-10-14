@@ -305,24 +305,35 @@ public class QuestionServiceImpl implements QuestionService {
 
 				System.out.println(map);
 				Question question = new Question();
-				question.setName(map.get("题目").length() > 10 ? map.get("题目")
-						.substring(0, 10) + "..." : map.get("题目"));
-				if (map.get("类型").equals("单选题")
-						|| map.get("类型").equals("单项选择题"))
+				String title = map.get("题目");
+				if (title == null || "".equals(title.trim())) {
+					throw new RuntimeException("题目不能为空");
+				}
+				question.setName(title.length() > 10 ? title
+						.substring(0, 10) + "..." : title);
+				String typeStr = map.get("类型");
+				if (typeStr == null || "".equals(typeStr.trim())) {
+					throw new RuntimeException("类型不能为空");
+				}
+				if (typeStr.equals("单选题")
+						|| typeStr.equals("单项选择题"))
 					question.setQuestion_type_id(1);
-				else if (map.get("类型").equals("多选题")
-						|| map.get("类型").equals("多项选择题"))
+				else if (typeStr.equals("多选题")
+						|| typeStr.equals("多项选择题"))
 					question.setQuestion_type_id(2);
-				else if (map.get("类型").equals("判断题"))
+				else if (typeStr.equals("判断题"))
 					question.setQuestion_type_id(3);
-				else if (map.get("类型").equals("填空题"))
+				else if (typeStr.equals("填空题"))
 					question.setQuestion_type_id(4);
-				else if (map.get("类型").equals("简答题"))
+				else if (typeStr.equals("简答题"))
 					question.setQuestion_type_id(5);
-				else if (map.get("类型").equals("论述题"))
+				else if (typeStr.equals("论述题"))
 					question.setQuestion_type_id(6);
-				else if (map.get("类型").equals("分析题"))
+				else if (typeStr.equals("分析题"))
 					question.setQuestion_type_id(7);
+				else {
+					throw new RuntimeException("类型不合法：" + typeStr);
+				}
 
 				question.setAnalysis(map.get("解析"));
 				String rawAnswer = map.get("答案");
@@ -338,7 +349,14 @@ public class QuestionServiceImpl implements QuestionService {
 					}
 				}
 
-				KnowledgePoint kp = questionMapper.getKnowledgePointByPointNameAndFieldId(map.get("知识类"), fieldId);
+				String knowledgeName = map.get("知识类");
+				if (knowledgeName == null || "".equals(knowledgeName.trim())) {
+					throw new RuntimeException("知识类不能为空");
+				}
+				KnowledgePoint kp = questionMapper.getKnowledgePointByPointNameAndFieldId(knowledgeName, fieldId);
+				if (kp == null) {
+					throw new RuntimeException("知识类不存在：" + knowledgeName + "（请先在所选题库下建该知识类）");
+				}
 				List<Integer> pointList = new ArrayList<Integer>();
 				pointList.add(kp.getPointId());
 				question.setReferenceName(map.get("出处"));
@@ -354,8 +372,9 @@ public class QuestionServiceImpl implements QuestionService {
 				}
 				question.setAnswerStageId(answerStage.getStageId());
 				question.setAnswerStageCreator(userId);
-				question.setPoints(map.get("分值").equals("") ? 0 : Float
-						.parseFloat(map.get("分值")));
+				String pointsStr = map.get("分值");
+				question.setPoints(pointsStr == null || "".equals(pointsStr.trim()) ? 0f
+						: Float.parseFloat(pointsStr));
 				String difficultyStr = map.get("难度");
 				question.setDifficulty(difficultyStr == null
 						|| "".equals(difficultyStr.trim()) ? 0f : Float
@@ -389,11 +408,17 @@ public class QuestionServiceImpl implements QuestionService {
 				index ++;
 			}
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			
-			e.printStackTrace();
-			throw new RuntimeException("第" + index + "行有错误，请检查！");
-		}
+				// TODO Auto-generated catch block
+				
+				e.printStackTrace();
+				String reason = e.getMessage();
+				if (reason == null || "".equals(reason.trim())) {
+					reason = "数据格式错误（" + e.getClass().getSimpleName() + "）";
+				} else if (e instanceof NumberFormatException) {
+					reason = "数字格式错误：分值/难度/选项等需填数字，当前无法解析";
+				}
+				throw new RuntimeException("第" + index + "行：" + reason);
+			}
 	}
 
 	private int resolveFirstDataRowIndex(List<String> titleList) {

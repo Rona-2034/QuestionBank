@@ -7,6 +7,7 @@ import { HomePage } from './pages/HomePage';
 import { AdminQuestionsPage } from './pages/AdminQuestionsPage';
 import { PracticePage } from './pages/PracticePage';
 import { ExamPage } from './pages/ExamPage';
+import { ExamReportPage } from './pages/ExamReportPage';
 import { UserCenterPage } from './pages/UserCenterPage';
 import { StudentAnalysisPage } from './pages/StudentAnalysisPage';
 import { StudentExamHistoryPage } from './pages/StudentExamHistoryPage';
@@ -193,7 +194,16 @@ function AppRoutes() {
       <Route path="/student/practice-improve-answer-stage/:answerStageId/:questionTypeId" element={<RedirectToPracticeStage />} />
       <Route path="/student/practice-incorrect/:knowledgePointId" element={<RedirectToPracticeIncorrect />} />
       <Route path="/student/examing/:examPaperId" element={<RedirectToExam />} />
-      <Route path="/student/exam-report/:examPaperId" element={<RedirectToExam />} />
+      <Route
+        path="/student/exam-report/:examPaperId"
+        element={
+          <RequireAuth>
+            <AppShell user={auth.user} onLogout={auth.signOut}>
+              <ExamReportPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
       <Route path="/student/finish-exam/:examPaperId" element={<RedirectToExam />} />
       <Route
         path="/student/exam/:examPaperId"

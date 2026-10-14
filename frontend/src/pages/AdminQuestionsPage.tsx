@@ -8,7 +8,7 @@ const initialFilters = {
   knowledge: 0,
   questionType: 0,
   answerStageId: 0,
-  searchParam: 0,
+  searchParam: '',
   page: 1,
 };
 
@@ -117,11 +117,11 @@ export function AdminQuestionsPage() {
           <label>
             关键字
             <input
-              value={String(filters.searchParam === 0 ? '' : filters.searchParam)}
+              value={filters.searchParam}
               onChange={(event) =>
                 setFilters((previous) => ({
                   ...previous,
-                  searchParam: event.target.value === '' ? 0 : Number(event.target.value),
+                  searchParam: event.target.value,
                 }))
               }
             />
