@@ -14,8 +14,18 @@ interface NavItem {
   matchPaths?: string[];
 }
 
+const OPEN_GROUPS_KEY = 'appshell-open-groups';
+const COLLAPSED_KEY = 'appshell-collapsed';
+
 export function AppShell({ children, user, onLogout }: AppShellProps) {
   const location = useLocation();
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    try {
+      return window.sessionStorage.getItem(COLLAPSED_KEY) === '1';
+    } catch {
+      return false;
+    }
+  });
   const roles = user?.rolesName || '';
   const isAdmin = roles.includes('管理员');
   const navGroups = [
@@ -96,23 +106,48 @@ export function AppShell({ children, user, onLogout }: AppShellProps) {
 
   const activeGroupId =
     navGroups.find((group) => group.items.some((item) => isItemActive(item)))?.id || null;
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() =>
-    Object.fromEntries(navGroups.map((group) => [group.id, group.id === activeGroupId])),
-  );
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = window.sessionStorage.getItem(OPEN_GROUPS_KEY);
+      if (saved) {
+        const restored = JSON.parse(saved) as Record<string, boolean>;
+        return { ...restored, [activeGroupId]: true };
+      }
+    } catch {
+      /* ignore */
+    }
+    return Object.fromEntries(navGroups.map((group) => [group.id, group.id === activeGroupId]));
+  });
 
   useEffect(() => {
     if (!activeGroupId) {
       return;
     }
-    setOpenGroups((current) => ({ ...current, [activeGroupId]: true }));
+    setOpenGroups((current) => {
+      const next = { ...current, [activeGroupId]: true };
+      try {
+        window.sessionStorage.setItem(OPEN_GROUPS_KEY, JSON.stringify(next));
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
   }, [activeGroupId]);
 
   function toggleGroup(groupId: string) {
-    setOpenGroups((current) => ({ ...current, [groupId]: !current[groupId] }));
+    setOpenGroups((current) => {
+      const next = { ...current, [groupId]: !current[groupId] };
+      try {
+        window.sessionStorage.setItem(OPEN_GROUPS_KEY, JSON.stringify(next));
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
   }
 
   return (
-    <div className="shell">
+    <div className={`shell${collapsed ? ' is-collapsed' : ''}`}>
       <aside className="shell-sidebar">
         <Link to="/home" className="brand-mark">
           <span className="brand-mark__glow" />
@@ -150,9 +185,29 @@ export function AppShell({ children, user, onLogout }: AppShellProps) {
       </aside>
       <div className="shell-main">
         <header className="shell-header">
-          <div>
-            <p className="eyebrow">ExamXX Frontend</p>
-            <h1>{user?.trueName || user?.username || '研发部题库'}</h1>
+          <div className="header-title-block">
+            <button
+              type="button"
+              className="ghost-button shell-collapse-button"
+              aria-label={collapsed ? '展开侧边栏' : '收起侧边栏'}
+              onClick={() =>
+                setCollapsed((current) => {
+                  const next = !current;
+                  try {
+                    window.sessionStorage.setItem(COLLAPSED_KEY, next ? '1' : '0');
+                  } catch {
+                    /* ignore */
+                  }
+                  return next;
+                })
+              }
+            >
+              {collapsed ? '☰' : '‹'}
+            </button>
+            <div>
+              <p className="eyebrow">ExamXX Frontend</p>
+              <h1>{user?.trueName || user?.username || '研发部题库'}</h1>
+            </div>
           </div>
           <div className="header-actions">
             <div className="user-badge">
