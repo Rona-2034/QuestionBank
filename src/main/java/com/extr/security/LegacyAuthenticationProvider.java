@@ -22,10 +22,10 @@ public class LegacyAuthenticationProvider implements AuthenticationProvider {
 
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
-        String username = authentication.getName().trim().toLowerCase();
+        String username = authentication.getName().trim();
         String password = String.valueOf(authentication.getCredentials());
         UserDetails user = userDetailsService.loadUserByUsername(username);
-        String encoded = passwordEncoder.encode(password + "{" + username + "}");
+        String encoded = passwordEncoder.encode(password + "{" + user.getUsername() + "}");
         if (!encoded.equals(user.getPassword())) {
             throw new BadCredentialsException("用户名或密码错误");
         }

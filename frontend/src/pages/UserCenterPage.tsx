@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { fetchUserCenter } from '../api';
+import { Link } from 'react-router-dom';
+import { displayAccount } from '../identity';
 import type { UserCenterPayload } from '../types';
 
 export function UserCenterPage() {
@@ -26,16 +28,16 @@ export function UserCenterPage() {
       <section className="panel">
         <div className="panel-heading">
           <h2>成员中心</h2>
-          <span>兼容当前 Session 用户结构</span>
+          <Link className="ghost-button" to="/student/setting">完善个人资料</Link>
         </div>
         <div className="profile-grid">
           <div className="profile-card">
             <span>账号</span>
-            <strong>{payload.username || '-'}</strong>
+            <strong>{displayAccount(payload.username)}</strong>
           </div>
           <div className="profile-card">
             <span>姓名</span>
-            <strong>{payload.username || '-'}</strong>
+            <strong>{payload.trueName?.trim() || '未填写'}</strong>
           </div>
           <div className="profile-card">
             <span>邮箱</span>

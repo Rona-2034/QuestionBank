@@ -30,8 +30,11 @@
 	
 	<select id="getExamPaperList4Exam" resultType="com.extr.domain.exam.ExamPaper">
 		select id,name,content,duration,pass_point,total_point,status,summary,is_visible,answer_sheet,group_id,
-		is_subjective,creator,paper_type,field_id from et_exam_paper where paper_type=#{paperType}
-		and status=1
+		is_subjective,creator,paper_type,field_id from et_exam_paper
+		where status=1
+		<if test="paperType != 0">
+			and paper_type=#{paperType}
+		</if>
 		
 	</select>
 	

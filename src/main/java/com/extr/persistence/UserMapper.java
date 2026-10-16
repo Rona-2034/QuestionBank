@@ -47,6 +47,8 @@ public interface UserMapper {
 	 * @return
 	 */
 	public User getUserByName(String username);
+	public List<Integer> getUserIdsByEmail(String email);
+	public List<Integer> getUserIdsByTrueName(String truename);
 
 	/**
 	 * 获取用户列表
