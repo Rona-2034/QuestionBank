@@ -1,3 +1,5 @@
+import { DepartmentSelect } from '../components/DepartmentSelect';
+import { displayAccount } from '../identity';
 import { FormEvent, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { fetchStudentSetting, updateStudentSetting } from '../api';
@@ -77,7 +79,7 @@ export function StudentSettingPage() {
         <form className="filter-grid" onSubmit={handleSubmit}>
           <label>
             账号
-            <input value={user.username} disabled />
+            <input value={displayAccount(user.username)} disabled />
           </label>
           <label>
             邮箱
@@ -92,8 +94,8 @@ export function StudentSettingPage() {
             <input value={truename} onChange={(event) => setTruename(event.target.value)} />
           </label>
           <label>
-            部门
-            <input value={department} onChange={(event) => setDepartment(event.target.value)} />
+            部门小组
+            <DepartmentSelect value={department} onChange={setDepartment} />
           </label>
           <label>
             题库权限

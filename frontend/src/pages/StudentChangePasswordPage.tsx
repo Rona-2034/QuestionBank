@@ -18,8 +18,8 @@ export function StudentChangePasswordPage() {
       setError('两次密码不一致');
       return;
     }
-    if (password.length < 6 || password.length > 10) {
-      setError('密码长度需要保持在 6 到 10 个字符');
+    if (!password.trim() || password.length > 40) {
+      setError('密码须为1至40个字符，且不能全为空格');
       return;
     }
     setSaving(true);

@@ -26,6 +26,9 @@ import { AdminQuestionImportPage } from './pages/AdminQuestionImportPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { SystemConfigPage } from './pages/SystemConfigPage';
 import { AppShell } from './components/AppShell';
+import { isAdmin, isSuperAdmin } from './permissions';
+import { StudentExamPapersPage } from './pages/StudentExamPapersPage';
+import { PracticeIndexPage } from './pages/PracticeIndexPage';
 
 interface AuthContextValue extends AuthState {
   loading: boolean;
@@ -35,7 +38,7 @@ interface AuthContextValue extends AuthState {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-function useAuth() {
+export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
     throw new Error('Auth context missing');
@@ -57,11 +60,15 @@ function RequireAuth({ children }: { children: JSX.Element }) {
 
 function RequireAdmin({ children }: { children: JSX.Element }) {
   const auth = useAuth();
-  const roles = auth.user?.rolesName || '';
-  if (!roles.includes('管理员')) {
+  if (!isAdmin(auth.user)) {
     return <Navigate to="/home" replace />;
   }
   return children;
+}
+
+function RequireSuperAdmin({ children }: { children: JSX.Element }) {
+  const auth = useAuth();
+  return isSuperAdmin(auth.user) ? children : <Navigate to="/home" replace />;
 }
 
 function HomeGate() {
@@ -111,7 +118,6 @@ function RedirectToExam() {
 }
 
 function AppRoutes() {
-  const auth = useAuth();
   return (
     <Routes>
       <Route path="/" element={<HomeGate />} />
@@ -123,9 +129,9 @@ function AppRoutes() {
         path="/home"
         element={
           <RequireAuth>
-            <AppShell user={auth.user} onLogout={auth.signOut}>
+            <>
               <HomePage />
-            </AppShell>
+            </>
           </RequireAuth>
         }
       />
@@ -133,20 +139,22 @@ function AppRoutes() {
         path="/student/user-center"
         element={
           <RequireAuth>
-            <AppShell user={auth.user} onLogout={auth.signOut}>
+            <>
               <UserCenterPage />
-            </AppShell>
+            </>
           </RequireAuth>
         }
       />
       <Route path="/student/usercenter" element={<RedirectToUserCenter />} />
+      <Route path="/student/exam-papers" element={<RequireAuth><StudentExamPapersPage /></RequireAuth>} />
+      <Route path="/student/practice" element={<RequireAuth><PracticeIndexPage /></RequireAuth>} />
       <Route
         path="/student/setting"
         element={
           <RequireAuth>
-            <AppShell user={auth.user} onLogout={auth.signOut}>
+            <>
               <StudentSettingPage />
-            </AppShell>
+            </>
           </RequireAuth>
         }
       />
@@ -154,9 +162,9 @@ function AppRoutes() {
         path="/student/change-password"
         element={
           <RequireAuth>
-            <AppShell user={auth.user} onLogout={auth.signOut}>
+            <>
               <StudentChangePasswordPage />
-            </AppShell>
+            </>
           </RequireAuth>
         }
       />
@@ -164,9 +172,9 @@ function AppRoutes() {
         path="/student/analysis"
         element={
           <RequireAuth>
-            <AppShell user={auth.user} onLogout={auth.signOut}>
+            <>
               <StudentAnalysisPage />
-            </AppShell>
+            </>
           </RequireAuth>
         }
       />
@@ -174,9 +182,9 @@ function AppRoutes() {
         path="/student/exam-history"
         element={
           <RequireAuth>
-            <AppShell user={auth.user} onLogout={auth.signOut}>
+            <>
               <StudentExamHistoryPage />
-            </AppShell>
+            </>
           </RequireAuth>
         }
       />
@@ -184,9 +192,9 @@ function AppRoutes() {
         path="/student/practice/:mode/:primaryId/:questionTypeId"
         element={
           <RequireAuth>
-            <AppShell user={auth.user} onLogout={auth.signOut}>
+            <>
               <PracticePage />
-            </AppShell>
+            </>
           </RequireAuth>
         }
       />
@@ -198,9 +206,9 @@ function AppRoutes() {
         path="/student/exam-report/:examPaperId"
         element={
           <RequireAuth>
-            <AppShell user={auth.user} onLogout={auth.signOut}>
+            <>
               <ExamReportPage />
-            </AppShell>
+            </>
           </RequireAuth>
         }
       />
@@ -209,9 +217,9 @@ function AppRoutes() {
         path="/student/exam/:examPaperId"
         element={
           <RequireAuth>
-            <AppShell user={auth.user} onLogout={auth.signOut}>
+            <>
               <ExamPage />
-            </AppShell>
+            </>
           </RequireAuth>
         }
       />
@@ -220,9 +228,9 @@ function AppRoutes() {
         element={
           <RequireAuth>
             <RequireAdmin>
-              <AppShell user={auth.user} onLogout={auth.signOut}>
+              <>
                 <AdminQuestionsPage />
-              </AppShell>
+              </>
             </RequireAdmin>
           </RequireAuth>
         }
@@ -233,9 +241,9 @@ function AppRoutes() {
         element={
           <RequireAuth>
             <RequireAdmin>
-              <AppShell user={auth.user} onLogout={auth.signOut}>
+              <>
                 <AdminQuestionDetailPage />
-              </AppShell>
+              </>
             </RequireAdmin>
           </RequireAuth>
         }
@@ -246,9 +254,9 @@ function AppRoutes() {
         element={
           <RequireAuth>
             <RequireAdmin>
-              <AppShell user={auth.user} onLogout={auth.signOut}>
+              <>
                 <AdminQuestionCreatePage />
-              </AppShell>
+              </>
             </RequireAdmin>
           </RequireAuth>
         }
@@ -258,9 +266,9 @@ function AppRoutes() {
         element={
           <RequireAuth>
             <RequireAdmin>
-              <AppShell user={auth.user} onLogout={auth.signOut}>
+              <>
                 <AdminQuestionImportPage />
-              </AppShell>
+              </>
             </RequireAdmin>
           </RequireAuth>
         }
@@ -271,9 +279,9 @@ function AppRoutes() {
         element={
           <RequireAuth>
             <RequireAdmin>
-              <AppShell user={auth.user} onLogout={auth.signOut}>
+              <>
                 <AdminExamPaperCreatePage />
-              </AppShell>
+              </>
             </RequireAdmin>
           </RequireAuth>
         }
@@ -287,9 +295,9 @@ function AppRoutes() {
         element={
           <RequireAuth>
             <RequireAdmin>
-              <AppShell user={auth.user} onLogout={auth.signOut}>
+              <>
                 <AdminExamPaperDetailPage />
-              </AppShell>
+              </>
             </RequireAdmin>
           </RequireAuth>
         }
@@ -299,9 +307,9 @@ function AppRoutes() {
         element={
           <RequireAuth>
             <RequireAdmin>
-              <AppShell user={auth.user} onLogout={auth.signOut}>
+              <>
                 <AdminUsersPage />
-              </AppShell>
+              </>
             </RequireAdmin>
           </RequireAuth>
         }
@@ -311,9 +319,9 @@ function AppRoutes() {
         element={
           <RequireAuth>
             <RequireAdmin>
-              <AppShell user={auth.user} onLogout={auth.signOut}>
+              <>
                 <AdminUsersPage />
-              </AppShell>
+              </>
             </RequireAdmin>
           </RequireAuth>
         }
@@ -324,17 +332,17 @@ function AppRoutes() {
       <Route path="/admin/point-list/:fieldId" element={<RedirectToPointsPage />} />
       <Route path="/admin/add-answer-stage" element={<Navigate to="/admin/answer-stages" replace />} />
       <Route path="/admin/answer-stage-list" element={<Navigate to="/admin/answer-stages" replace />} />
-      <Route path="/admin/sys-backup" element={<RequireAuth><RequireAdmin><AppShell user={auth.user} onLogout={auth.signOut}><SystemConfigPage /></AppShell></RequireAdmin></RequireAuth>} />
-      <Route path="/admin/sys-admin-list" element={<RequireAuth><RequireAdmin><AppShell user={auth.user} onLogout={auth.signOut}><SystemConfigPage /></AppShell></RequireAdmin></RequireAuth>} />
-      <Route path="/admin/add-admin" element={<RequireAuth><RequireAdmin><AppShell user={auth.user} onLogout={auth.signOut}><SystemConfigPage /></AppShell></RequireAdmin></RequireAuth>} />
+      <Route path="/admin/sys-backup" element={<RequireAuth><RequireSuperAdmin><><SystemConfigPage /></></RequireSuperAdmin></RequireAuth>} />
+      <Route path="/admin/sys-admin-list" element={<RequireAuth><RequireSuperAdmin><><SystemConfigPage /></></RequireSuperAdmin></RequireAuth>} />
+      <Route path="/admin/add-admin" element={<RequireAuth><RequireSuperAdmin><><SystemConfigPage /></></RequireSuperAdmin></RequireAuth>} />
       <Route
         path="/admin/fields"
         element={
           <RequireAuth>
             <RequireAdmin>
-              <AppShell user={auth.user} onLogout={auth.signOut}>
+              <>
                 <AdminFieldsPage />
-              </AppShell>
+              </>
             </RequireAdmin>
           </RequireAuth>
         }
@@ -344,9 +352,9 @@ function AppRoutes() {
         element={
           <RequireAuth>
             <RequireAdmin>
-              <AppShell user={auth.user} onLogout={auth.signOut}>
+              <>
                 <AdminPointsPage />
-              </AppShell>
+              </>
             </RequireAdmin>
           </RequireAuth>
         }
@@ -356,9 +364,9 @@ function AppRoutes() {
         element={
           <RequireAuth>
             <RequireAdmin>
-              <AppShell user={auth.user} onLogout={auth.signOut}>
+              <>
                 <AdminAnswerStagesPage />
-              </AppShell>
+              </>
             </RequireAdmin>
           </RequireAuth>
         }
@@ -368,9 +376,9 @@ function AppRoutes() {
         element={
           <RequireAuth>
             <RequireAdmin>
-              <AppShell user={auth.user} onLogout={auth.signOut}>
+              <>
                 <AdminUsersPage />
-              </AppShell>
+              </>
             </RequireAdmin>
           </RequireAuth>
         }
@@ -380,9 +388,9 @@ function AppRoutes() {
         element={
           <RequireAuth>
             <RequireAdmin>
-              <AppShell user={auth.user} onLogout={auth.signOut}>
+              <>
                 <AdminExamPapersPage />
-              </AppShell>
+              </>
             </RequireAdmin>
           </RequireAuth>
         }
@@ -394,6 +402,7 @@ function AppRoutes() {
 
 export function App() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [auth, setAuth] = useState<AuthState>({
     authenticated: false,
     user: null,
@@ -422,6 +431,15 @@ export function App() {
     void refresh();
   }, []);
 
+  useEffect(() => {
+    const expire = () => {
+      setAuth({ authenticated: false, user: null });
+      navigate('/login', { replace: true, state: { from: location.pathname } });
+    };
+    window.addEventListener('auth-expired', expire);
+    return () => window.removeEventListener('auth-expired', expire);
+  }, [navigate, location.pathname]);
+
   const value = useMemo<AuthContextValue>(
     () => ({
       ...auth,
@@ -434,7 +452,9 @@ export function App() {
 
   return (
     <AuthContext.Provider value={value}>
-      <AppRoutes />
+      {auth.authenticated && !['/login', '/user-login-page', '/user-register'].includes(location.pathname) ? (
+        <AppShell user={auth.user} onLogout={signOut}><AppRoutes /></AppShell>
+      ) : <AppRoutes />}
     </AuthContext.Provider>
   );
 }

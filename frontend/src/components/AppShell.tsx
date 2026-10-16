@@ -1,6 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import type { AuthUser } from '../types';
+import { isAdmin as hasAdminRole, isSuperAdmin } from '../permissions';
+import { displayAccount } from '../identity';
+import seavoLogo from '../assets/seavo-logo.svg';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -26,16 +29,21 @@ export function AppShell({ children, user, onLogout }: AppShellProps) {
       return false;
     }
   });
-  const roles = user?.rolesName || '';
-  const isAdmin = roles.includes('管理员');
+  const isAdmin = hasAdminRole(user);
+  const sidebarRef = useRef<HTMLElement>(null);
+  useLayoutEffect(() => {
+    try { if (sidebarRef.current) sidebarRef.current.scrollTop = Number(sessionStorage.getItem('appshell-scroll') || 0); } catch { /* storage unavailable */ }
+  }, []);
   const navGroups = [
     {
       id: 'learning',
       title: '学习中心',
       items: [
         { to: '/student/user-center', label: '成员中心' },
+        { to: '/student/practice', label: '强化练习' },
+        { to: '/student/exam-papers', label: '参加考试', matchPaths: ['/student/exam-papers', '/student/exam'] },
         { to: '/student/analysis', label: '学习分析' },
-        { to: '/student/exam-history', label: '考试历史' },
+        { to: '/student/exam-history', label: '考试历史', matchPaths: ['/student/exam-history', '/student/exam-report'] },
       ],
     },
     {
@@ -79,17 +87,15 @@ export function AppShell({ children, user, onLogout }: AppShellProps) {
       title: '题库管理',
       adminOnly: true,
       items: [
-        { to: '/admin/field-list-1', label: '题库列表', matchPaths: ['/admin/fields', '/admin/field-list-1'] },
-        { to: '/admin/add-field', label: '添加题库' },
-        { to: '/admin/point-list/1', label: '知识类列表', matchPaths: ['/admin/points/1', '/admin/point-list/1'] },
-        { to: '/admin/add-point', label: '添加知识类' },
-        { to: '/admin/answer-stage-list', label: '答题人阶段列表', matchPaths: ['/admin/answer-stages', '/admin/answer-stage-list'] },
-        { to: '/admin/add-answer-stage', label: '添加答题人阶段' },
+        { to: '/admin/fields', label: '题库列表', matchPaths: ['/admin/fields', '/admin/field-list-1', '/admin/add-field'] },
+        { to: '/admin/points/1', label: '知识类列表', matchPaths: ['/admin/points', '/admin/point-list', '/admin/add-point'] },
+        { to: '/admin/answer-stages', label: '答题人阶段列表', matchPaths: ['/admin/answer-stages', '/admin/answer-stage-list', '/admin/add-answer-stage'] },
       ],
     },
     {
       id: 'system',
-      title: '网站设置',
+      title: '超级管理员设置',
+      superOnly: true,
       adminOnly: true,
       items: [
         { to: '/admin/sys-backup', label: '数据备份' },
@@ -97,11 +103,14 @@ export function AppShell({ children, user, onLogout }: AppShellProps) {
         { to: '/admin/add-admin', label: '添加管理员' },
       ],
     },
-  ].filter((group) => (group.adminOnly ? isAdmin : true));
+  ].filter((group) => group.superOnly ? isSuperAdmin(user) : group.adminOnly ? isAdmin : true);
 
   function isItemActive(item: NavItem) {
-    const matchPaths = item.matchPaths || [item.to];
-    return matchPaths.some((path) => location.pathname === path || location.pathname.startsWith(`${path}/`));
+    const score = (candidate: NavItem) => Math.max(-1, ...(candidate.matchPaths || [candidate.to])
+      .filter((path) => location.pathname === path || location.pathname.startsWith(`${path}/`))
+      .map((path) => path.length));
+    const currentScore = score(item);
+    return currentScore >= 0 && !navGroups.some((group) => group.items.some((other) => score(other) > currentScore));
   }
 
   const activeGroupId =
@@ -111,7 +120,7 @@ export function AppShell({ children, user, onLogout }: AppShellProps) {
       const saved = window.sessionStorage.getItem(OPEN_GROUPS_KEY);
       if (saved) {
         const restored = JSON.parse(saved) as Record<string, boolean>;
-        return { ...restored, [activeGroupId]: true };
+        return activeGroupId ? { ...restored, [activeGroupId]: true } : restored;
       }
     } catch {
       /* ignore */
@@ -148,7 +157,9 @@ export function AppShell({ children, user, onLogout }: AppShellProps) {
 
   return (
     <div className={`shell${collapsed ? ' is-collapsed' : ''}`}>
-      <aside className="shell-sidebar">
+      <aside className="shell-sidebar" ref={sidebarRef} onScroll={(event) => {
+        try { sessionStorage.setItem('appshell-scroll', String(event.currentTarget.scrollTop)); } catch { /* storage unavailable */ }
+      }}>
         <Link to="/home" className="brand-mark">
           <span className="brand-mark__glow" />
           <span>研发部题库</span>
@@ -165,19 +176,19 @@ export function AppShell({ children, user, onLogout }: AppShellProps) {
                 key={group.id}
                 className={`shell-nav__group${isOpen ? ' is-open' : ''}${isGroupActive ? ' is-active' : ''}`}
               >
-                <button type="button" className="shell-nav__trigger" onClick={() => toggleGroup(group.id)}>
+                <button type="button" className="shell-nav__trigger" aria-expanded={Boolean(isOpen)} aria-controls={`nav-${group.id}`} onClick={() => toggleGroup(group.id)}>
                   <span>{group.title}</span>
                   <span className="shell-nav__chevron" aria-hidden="true">
                     ▾
                   </span>
                 </button>
-                <div className="shell-nav__items">
+                <div className="shell-nav__items-wrap" id={`nav-${group.id}`} {...(!isOpen ? { inert: '' } : {})}><div className="shell-nav__items">
                   {group.items.map((item) => (
                     <Link key={item.to} to={item.to} className={isItemActive(item) ? 'active' : undefined}>
                       {item.label}
                     </Link>
                   ))}
-                </div>
+                </div></div>
               </div>
             );
           })}
@@ -205,14 +216,14 @@ export function AppShell({ children, user, onLogout }: AppShellProps) {
               {collapsed ? '☰' : '‹'}
             </button>
             <div>
-              <p className="eyebrow">ExamXX Frontend</p>
-              <h1>{user?.trueName || user?.username || '研发部题库'}</h1>
+              <div className="header-brand"><img src={seavoLogo} alt="SEAVO" /></div>
+              <h1>{user?.trueName || displayAccount(user?.username)}</h1>
             </div>
           </div>
           <div className="header-actions">
             <div className="user-badge">
               <span>{user?.rolesName || '成员'}</span>
-              <strong>{user?.username}</strong>
+              <strong>{displayAccount(user?.username)}</strong>
             </div>
             <button className="ghost-button" onClick={() => void onLogout()}>
               退出登录

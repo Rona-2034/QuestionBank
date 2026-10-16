@@ -5,6 +5,12 @@
 <mapper namespace="com.extr.persistence.UserMapper">
 
 	<!-- User -->
+	<select id="getUserIdsByEmail" resultType="java.lang.Integer">
+		select id from et_user where email=#{email} limit 2
+	</select>
+	<select id="getUserIdsByTrueName" resultType="java.lang.Integer">
+		select id from et_user where truename=#{truename} limit 2
+	</select>
 	<insert id="insertUser" useGeneratedKeys="true" keyProperty="id"
 		parameterType="com.extr.domain.user.User">
 		<!-- 原成员与题库挂钩写法保留：
@@ -35,8 +41,7 @@
 			<if test="user.loginTime != null">login_time=#{user.loginTime},</if>
 			<if test="user.lastLoginTime != null">last_login_time=#{user.lastLoginTime},</if>
 				<if test="user.department != null">department=#{user.department},</if>
-			<if test="user.username != null">username=#{user.username}</if>
-			<if test="user.id != 0">id=#{user.id}</if>
+			<if test="user.username != null">username=#{user.username},</if>
 		</set>
 		<where>
 			(username = #{user.username} or id=#{user.id})
@@ -124,6 +129,10 @@
 		a,et_r_user_role b
 		where a.id=b.user_id and
 		b.role_id=#{role_id}
+		<if test="role_id == 3">
+			and not exists (select 1 from et_r_user_role protected_role
+			where protected_role.user_id=a.id and protected_role.role_id != 3)
+		</if>
 	</select>
 	<select id="getRoleListByUserId" resultType="com.extr.domain.user.Role">
 		select c.* from
