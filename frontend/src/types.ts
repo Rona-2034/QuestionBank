@@ -17,6 +17,7 @@ export interface UserProfile {
 }
 
 export interface AuthUser {
+  authorities?: string[];
   userid: number;
   username: string;
   trueName?: string;
@@ -409,6 +410,7 @@ export interface UserCenterStageAnalysis {
 }
 
 export interface UserCenterPayload {
+  trueName?: string | null;
   username: string | null;
   email: string | null;
   field: string | null;

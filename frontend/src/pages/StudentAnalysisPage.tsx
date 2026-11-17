@@ -2,6 +2,20 @@ import { useEffect, useState } from 'react';
 import { fetchStudentAnalysis } from '../api';
 import type { StudentAnalysisPayload } from '../types';
 
+function LoginTime({ value }: { value?: string | null }) {
+  const date = value ? new Date(value) : null;
+  if (!date || Number.isNaN(date.getTime())) return <strong className="login-time-date">暂无记录</strong>;
+  const parts = new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', year: 'numeric',
+    month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' })
+    .formatToParts(date);
+  const part = (type: string) => parts.find((item) => item.type === type)?.value || '';
+  return <time className="login-time" dateTime={date.toISOString()} title="北京时间">
+    <strong className="login-time-date">{part('year')}-{part('month')}-{part('day')}</strong>
+    <span className="login-time-clock">{part('hour')}:{part('minute')}:{part('second')}</span>
+    <small>北京时间</small>
+  </time>;
+}
+
 export function StudentAnalysisPage() {
   const [payload, setPayload] = useState<StudentAnalysisPayload | null>(null);
   const [error, setError] = useState('');
@@ -32,7 +46,7 @@ export function StudentAnalysisPage() {
         <div className="hero-metrics">
           <div className="metric-card">
             <span>最后登录</span>
-            <strong style={{ fontSize: 18 }}>{payload.lastLoginTime || '-'}</strong>
+            <LoginTime value={payload.lastLoginTime} />
           </div>
           <div className="metric-card">
             <span>知识点统计</span>

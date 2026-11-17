@@ -27,10 +27,7 @@ public class UserServiceImpl implements UserService {
 			int userId = -1;
 			userMapper.insertUser(user);
 			userId = user.getId();
-			if (user.getRoleListStack() == null)
-				userMapper.grantUserRole(userId, 3);
-			else
-				userMapper.grantUserRole(user.getId(), user.getRoleListStack().get(0).getId());
+			userMapper.grantUserRole(userId, 3);
 			
 			return userId;
 		} catch (Exception e) {
@@ -48,10 +45,7 @@ public class UserServiceImpl implements UserService {
 			int userId = -1;
 			userMapper.insertUser(user);
 			userId = user.getId();
-			if (user.getRoleListStack() == null)
-				userMapper.grantUserRole(userId, 1);
-			else
-				userMapper.grantUserRole(user.getId(), user.getRoleListStack().get(0).getId());
+			userMapper.grantUserRole(userId, 1);
 			
 			return userId;
 		} catch (Exception e) {
@@ -83,7 +77,10 @@ public class UserServiceImpl implements UserService {
 
 	@Override
 	public void disableUser(int user_id) {
-		// TODO Auto-generated method stub
+		User update = new User();
+		update.setId(user_id);
+		update.setEnabled("0");
+		userMapper.updateUser(update, null);
 	}
 
 	

@@ -3,12 +3,14 @@ import { Link } from 'react-router-dom';
 import { fetchHome } from '../api';
 import type { ExamPaper, HomePayload, QuestionImproveResult } from '../types';
 
-function PaperSection({ title, papers }: { title: string; papers: ExamPaper[] }) {
+function PaperSection({ title, papers, paperType }: { title: string; papers: ExamPaper[]; paperType: number }) {
   return (
     <section className="panel">
       <div className="panel-heading">
         <h2>{title}</h2>
-        <span>{papers.length} 份试卷</span>
+        <div className="dashboard-entry-actions"><span className="dashboard-paper-count">{papers.length} 份试卷</span>
+          <Link className="primary-button" to={`/student/exam-papers?paperType=${paperType}`}>进入{title}</Link>
+        </div>
       </div>
       <div className="paper-grid">
         {papers.map((paper) => (
@@ -61,10 +63,11 @@ export function HomePage() {
     <div className="page-stack">
       <section className="hero-panel">
         <div>
-          <p className="eyebrow">Current Brand Palette</p>
-          <h2>现代科技风前端壳已接入原系统能力</h2>
+          <p className="eyebrow">SEAVO</p>
+          <h2>研发部学习与考试中心</h2>
+          <Link className="primary-button" to="/student/exam-papers">参加考试</Link>
           <p>
-            主色继续沿用企业题库的橙色和石墨灰，练习入口、试卷入口和后台入口都基于兼容 API 输出。
+            选择知识类开始练习，查看错题，或进入考试检验学习成果。
           </p>
         </div>
         <div className="hero-metrics">
@@ -88,7 +91,7 @@ export function HomePage() {
       <section className="panel">
         <div className="panel-heading">
           <h2>强化练习入口</h2>
-          <span>按知识类与题型启动练习</span>
+          <Link className="primary-button" to="/student/practice">进入强化练习</Link>
         </div>
         <div className="practice-grid">
           {classifyEntries.slice(0, 12).map(([pointName, items]) => (
@@ -117,9 +120,9 @@ export function HomePage() {
         </div>
       </section>
 
-      <PaperSection title="随机组卷" papers={payload.historypaper} />
-      <PaperSection title="模拟试卷" papers={payload.practicepaper} />
-      <PaperSection title="专家试卷" papers={payload.expertpaper} />
+      <PaperSection title="随机组卷" papers={payload.historypaper} paperType={1} />
+      <PaperSection title="模拟试卷" papers={payload.practicepaper} paperType={2} />
+      <PaperSection title="专家试卷" papers={payload.expertpaper} paperType={3} />
     </div>
   );
 }

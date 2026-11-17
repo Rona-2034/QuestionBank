@@ -69,11 +69,35 @@ select {
   font-size: 48px;
 }
 
+.auth-logo {
+  display: block;
+  width: 156px;
+  height: auto;
+  padding: 10px 12px;
+  margin: 0 0 24px;
+  background: #fff;
+  border-radius: 10px;
+}
+
 .eyebrow {
   text-transform: uppercase;
   letter-spacing: 0.14em;
   font-size: 12px;
   color: rgba(255, 255, 255, 0.72);
+}
+
+.header-brand {
+  margin: 0 0 6px;
+  width: 106px;
+  height: 44px;
+  overflow: hidden;
+}
+
+.header-brand img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .auth-form {
@@ -113,6 +137,8 @@ select {
   bottom: 0;
   width: 280px;
   overflow-y: auto;
+  scrollbar-gutter: stable;
+  overflow-anchor: none;
   padding: 28px 22px;
   background: linear-gradient(180deg, #1f2329 0%, #2c2c2c 100%);
   color: #fff;
@@ -204,14 +230,34 @@ select {
   color: var(--brand);
 }
 
+.shell-nav__items-wrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 200ms ease, opacity 160ms ease;
+}
+
+.shell-nav__group.is-open .shell-nav__items-wrap {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
 .shell-nav__items {
+  min-height: 0;
+  overflow: hidden;
   display: grid;
   gap: 6px;
   padding: 0 10px 10px;
 }
 
 .shell-nav__group:not(.is-open) .shell-nav__items {
-  display: none;
+  padding-bottom: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shell-nav__items-wrap, .shell-nav__chevron, .shell-sidebar, .shell-main {
+    transition: none;
+  }
 }
 
 .shell-nav__items a {
@@ -367,6 +413,32 @@ select {
   font-size: 28px;
 }
 
+.login-time {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.metric-card .login-time-date {
+  font-size: 18px;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.metric-card .login-time-clock {
+  margin: 0;
+  font-size: 16px;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.login-time small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
 .panel-heading {
   display: flex;
   justify-content: space-between;
@@ -378,6 +450,35 @@ select {
 .panel-heading h2 {
   margin: 0;
   font-size: 22px;
+}
+
+.dashboard-entry-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+
+.dashboard-paper-count {
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #f4f6f8;
+  color: var(--muted);
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.dashboard-entry-actions .primary-button {
+  white-space: nowrap;
+  box-shadow: none;
+}
+
+@media (max-width: 640px) {
+  .dashboard-entry-actions {
+    justify-content: space-between;
+    gap: 16px;
+  }
 }
 
 .practice-grid {
@@ -523,6 +624,35 @@ select {
 .ghost-button {
   background: rgba(44, 44, 44, 0.06);
   color: var(--graphite);
+}
+
+.auth-form .ghost-button {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  text-align: center;
+  font-weight: 600;
+}
+
+.auth-form .ghost-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.auth-form label {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.auth-form select {
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 14px;
+  color: #fff;
+  background: #35383e;
+}
+
+.auth-form .error-banner {
+  color: #ffd6c9;
+  background: rgba(233, 74, 22, 0.18);
 }
 
 .primary-button:hover,

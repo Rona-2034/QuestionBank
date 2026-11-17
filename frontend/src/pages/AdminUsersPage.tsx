@@ -1,3 +1,4 @@
+import { DepartmentSelect } from '../components/DepartmentSelect';
 import { FormEvent, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { createAdminUser, disableAdminUser, enableAdminUser, fetchAdminFields, fetchAdminUsers } from '../api';
@@ -61,8 +62,8 @@ export function AdminUsersPage() {
       setError('用户名只能由 1 到 40 位字母、数字或下划线组成');
       return;
     }
-    if (!department || department.length > 40 || !isWordLike(department)) {
-      setError('部门只能由 1 到 40 位字母、数字或下划线组成');
+    if (department.length > 40) {
+      setError('部门小组不能超过40个字符');
       return;
     }
     if (!email || email.length > 40) {
@@ -73,8 +74,8 @@ export function AdminUsersPage() {
       setError('邮箱格式无效');
       return;
     }
-    if (password.length < 6 || password.length > 20) {
-      setError('密码请保持在 6 到 20 个字符以内');
+    if (!password.trim() || password.length > 40) {
+      setError('密码须为1至40个字符，且不能全为空格');
       return;
     }
 
@@ -177,8 +178,8 @@ export function AdminUsersPage() {
               <input value={password} onChange={(event) => setPassword(event.target.value)} />
             </label>
             <label>
-              部门
-              <input value={department} onChange={(event) => setDepartment(event.target.value)} />
+              部门小组
+              <DepartmentSelect value={department} onChange={setDepartment} />
             </label>
             <button className="primary-button" type="submit" disabled={saving}>
               {saving ? '提交中...' : '确认添加'}
@@ -211,7 +212,7 @@ export function AdminUsersPage() {
                 {payload?.items.map((item) => (
                   <tr key={item.id}>
                     <td>{item.id}</td>
-                    <td>{item.username}</td>
+                    <td>{item.truename?.trim() || '未填写姓名'}</td>
                     <td>{item.email || '-'}</td>
                     <td>{item.department || '-'}</td>
                     <td>{item.fieldName || '-'}</td>

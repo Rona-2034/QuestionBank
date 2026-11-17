@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -21,6 +22,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -81,6 +83,18 @@ import com.extr.util.xml.Object2Xml;
 @RequestMapping("/api/app")
 public class AppApiController {
 
+    @Value("${examxx.departments:}")
+    private String departmentOptions;
+
+    @Value("${examxx.admin-registration-code-sha256:}")
+    private String adminRegistrationCodeHash;
+
+    @RequestMapping(value = "/auth/options", method = RequestMethod.GET)
+    public @ResponseBody Map<String, Object> registrationOptions() {
+        return Map.of("departments", java.util.Arrays.stream(departmentOptions.split(","))
+                .map(String::trim).filter(value -> !value.isEmpty()).distinct().toList());
+    }
+
     @Autowired
     private BaseController baseController;
     @Autowired
@@ -93,6 +107,9 @@ public class AppApiController {
     private UserService userService;
     @Autowired
     private AuthenticationManager authenticationManager;
+
+    @Autowired
+    private com.extr.security.UserAccessPolicy userAccessPolicy;
 
     @RequestMapping(value = "/auth/me", method = RequestMethod.GET)
     public @ResponseBody Map<String, Object> me() {
@@ -109,7 +126,7 @@ public class AppApiController {
             HttpServletRequest request, HttpServletResponse response) {
         Map<String, Object> payload = new LinkedHashMap<String, Object>();
         String username = user == null || user.getUsername() == null ? ""
-                : user.getUsername().trim().toLowerCase();
+                : user.getUsername().trim();
         String password = user == null || user.getPassword() == null ? ""
                 : user.getPassword();
         if (!TextLengthValidator.isRequiredTextValid(username)
@@ -167,13 +184,65 @@ public class AppApiController {
         return payload;
     }
 
+    public record RegistrationRequest(String email, String password, String department, String truename,
+            String accountType, String registrationCode) {}
+
     @RequestMapping(value = "/auth/register", method = RequestMethod.POST)
     public @ResponseBody Message register(
-            @org.springframework.web.bind.annotation.RequestBody User user) {
+            @RequestBody RegistrationRequest request, HttpServletResponse response) {
+        Message message = new Message();
+        String accountType = request.accountType() == null ? "member" : request.accountType();
+        if (!"member".equals(accountType) && !"admin".equals(accountType)) {
+            response.setStatus(400);
+            message.setResult("error");
+            message.setMessageInfo("请选择普通成员或管理员注册");
+            return message;
+        }
+        boolean administrator = "admin".equals(accountType);
+        if (administrator) {
+            if (!adminRegistrationCodeHash.matches("[a-fA-F0-9]{64}")) {
+                response.setStatus(503);
+                message.setResult("error");
+                message.setMessageInfo("管理员注册暂未开放，请联系管理员");
+                return message;
+            }
+            if (!matchesAdminRegistrationCode(request.registrationCode())) {
+                response.setStatus(400);
+                message.setResult("error");
+                message.setMessageInfo("管理员注册码无效，请核对后重试");
+                return message;
+            }
+        }
+        String email = request.email() == null ? "" : request.email().trim().toLowerCase(Locale.ROOT);
+        if (!TextLengthValidator.isRequiredTextValid(email)
+                || !email.matches("[a-z0-9._%+\\-]+@seavo\\.com")) {
+            response.setStatus(400);
+            message.setResult("error");
+            message.setMessageInfo("请使用有效的 @seavo.com 公司邮箱（不超过40个字符）");
+            return message;
+        }
+        if (!TextLengthValidator.isRequiredTextValid(request.password()) || request.password().length() > 40) {
+            response.setStatus(400);
+            message.setResult("error");
+            message.setMessageInfo("密码须为1至40个字符，且不能全为空格");
+            return message;
+        }
+        if (!TextLengthValidator.isRequiredTextValid(request.truename())) {
+            response.setStatus(400);
+            message.setResult("error");
+            message.setMessageInfo("请填写姓名（1至40个字符）");
+            return message;
+        }
+        // Only the server chooses a role; administrator creation requires a verified invitation.
+        User user = new User();
+        user.setUsername(email);
+        user.setEmail(email);
+        user.setTruename(request.truename().trim());
+        user.setPassword(request.password());
+        user.setDepartment(request.department());
         user.setCreator("0");
         user.setCreate_date(new Date());
         user.setFieldId(0);
-        Message message = new Message();
         if (!validateUserText(user, message)) {
             return message;
         }
@@ -183,17 +252,35 @@ public class AppApiController {
         user.setPassword(resultPassword);
         user.setEnabled("1");
         try {
-            userService.addUser(user);
+            if (administrator) {
+                userService.addAdmin(user);
+            } else {
+                userService.addUser(user);
+            }
         } catch (Exception e) {
             if ("duplicate-username".equals(e.getMessage())) {
+                response.setStatus(409);
                 message.setResult(e.getMessage());
-                message.setMessageInfo("用户名：" + user.getUsername()
-                        + "已经存在");
+                message.setMessageInfo("该邮箱已注册，请直接登录");
             } else {
-                message.setResult("错误！" + e.getClass().getName());
+                response.setStatus(500);
+                message.setResult("error");
+                message.setMessageInfo("注册失败，请稍后重试");
             }
         }
         return message;
+    }
+
+    private boolean matchesAdminRegistrationCode(String code) {
+        if (code == null || code.length() > 128) return false;
+        try {
+            byte[] digest = java.security.MessageDigest.getInstance("SHA-256")
+                    .digest(code.getBytes(StandardCharsets.UTF_8));
+            byte[] expected = java.util.HexFormat.of().parseHex(adminRegistrationCodeHash);
+            return java.security.MessageDigest.isEqual(expected, digest);
+        } catch (java.security.NoSuchAlgorithmException exception) {
+            throw new IllegalStateException(exception);
+        }
     }
 
     @RequestMapping(value = "/home", method = RequestMethod.GET)
@@ -212,6 +299,8 @@ public class AppApiController {
         List<Map<String, Object>> statistics = buildStatisticsResultList(userInfo);
         Map<String, Object> payload = new LinkedHashMap<String, Object>();
         payload.put("username", userInfo == null ? null : userInfo.getUsername());
+        User profile = userInfo == null ? null : userService.getUserById(userInfo.getUserid());
+        payload.put("trueName", profile == null ? null : profile.getTruename());
         payload.put("email", userInfo == null ? null : userInfo.getEmail());
         payload.put("field", userInfo == null ? null : userInfo.getFieldName());
         payload.put("lastLoginTime", userInfo == null ? null : userInfo.getLastLoginTime());
@@ -1042,6 +1131,7 @@ public class AppApiController {
     public @ResponseBody Map<String, Object> adminUsers(
             @RequestParam(value = "roleId", required = false, defaultValue = "3") int roleId,
             @RequestParam(value = "page", required = false, defaultValue = "1") int page) {
+        userAccessPolicy.requireAllowedRoleList(roleId);
         Page<User> pageModel = new Page<User>();
         pageModel.setPageNo(page);
         pageModel.setPageSize(20);
@@ -1133,6 +1223,7 @@ public class AppApiController {
 
     @RequestMapping(value = "/admin/users/{userId}/disable", method = RequestMethod.POST)
     public @ResponseBody Message adminUserDisable(@PathVariable("userId") int userId) {
+        userAccessPolicy.requireManageableUser(userId);
         Message message = new Message();
         try {
             userService.disableUser(userId);
@@ -1144,6 +1235,7 @@ public class AppApiController {
 
     @RequestMapping(value = "/admin/users/{userId}/enable", method = RequestMethod.POST)
     public @ResponseBody Message adminUserEnable(@PathVariable("userId") int userId) {
+        userAccessPolicy.requireManageableUser(userId);
         Message message = new Message();
         try {
             User user = new User();
@@ -1490,6 +1582,9 @@ public class AppApiController {
     }
 
     private boolean validateUserText(User user, Message message) {
+        if (user.getUsername() != null) {
+            user.setUsername(user.getUsername().trim().toLowerCase(Locale.ROOT));
+        }
         if (!TextLengthValidator.isRequiredTextValid(user.getUsername())) {
             message.setResult("error");
             message.setMessageInfo(TextLengthValidator.message("用户名"));
@@ -1498,6 +1593,11 @@ public class AppApiController {
         if (!TextLengthValidator.isRequiredTextValid(user.getEmail())) {
             message.setResult("error");
             message.setMessageInfo(TextLengthValidator.message("邮箱"));
+            return false;
+        }
+        if (!TextLengthValidator.isRequiredTextValid(user.getPassword()) || user.getPassword().length() > 40) {
+            message.setResult("error");
+            message.setMessageInfo("密码须为1至40个字符，且不能全为空格");
             return false;
         }
         return validateOptionalUserText(user, message);
@@ -1531,6 +1631,8 @@ public class AppApiController {
         payload.put("username", userInfo.getUsername());
         payload.put("trueName", userInfo.getTrueName());
         payload.put("rolesName", userInfo.getRolesName());
+        payload.put("authorities", userInfo.getAuthorities().stream()
+                .map(authority -> authority.getAuthority()).toList());
         payload.put("enabled", userInfo.getEnabled());
         payload.put("fieldId", Integer.valueOf(userInfo.getFieldId()));
         payload.put("fieldName", userInfo.getFieldName());
@@ -1538,7 +1640,9 @@ public class AppApiController {
         payload.put("lastLoginTime", userInfo.getLastLoginTime());
         payload.put("loginTime", userInfo.getLoginTime());
         if (userInfo.getUserid() != 0) {
-            payload.put("profile", userService.getUserById(userInfo.getUserid()));
+            User profile = userService.getUserById(userInfo.getUserid());
+            profile.setPassword(null);
+            payload.put("profile", profile);
         }
         return payload;
     }

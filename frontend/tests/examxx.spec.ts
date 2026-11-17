@@ -10,7 +10,7 @@ async function login(page: import('@playwright/test').Page, username: string, pa
 test('student can complete practice and exam flow', async ({ page }) => {
   await login(page, 'student', '123456');
   await expect(page).toHaveURL(/\/app\/home/);
-  await expect(page.getByText('现代科技风前端壳已接入原系统能力')).toBeVisible();
+  await expect(page.getByText('研发部学习与考试中心')).toBeVisible();
 
   await page.getByRole('link', { name: '开始' }).first().click();
   await expect(page).toHaveURL(/\/app\/student\/practice\/point\/101\/1/);

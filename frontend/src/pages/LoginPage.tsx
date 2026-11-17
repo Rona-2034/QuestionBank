@@ -1,9 +1,12 @@
 import { FormEvent, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { login, fetchMe } from '../api';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { login } from '../api';
+import { useAuth } from '../App';
+import seavoLogo from '../assets/seavo-logo.svg';
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const auth = useAuth();
   const location = useLocation();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -16,10 +19,9 @@ export function LoginPage() {
     setError('');
     try {
       await login(username, password);
-      await fetchMe();
+      await auth.refresh();
       const next = (location.state as { from?: string } | null)?.from || '/home';
       navigate(next, { replace: true });
-      window.location.reload();
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : '登录失败');
     } finally {
@@ -31,13 +33,13 @@ export function LoginPage() {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-brand">
-          <p className="eyebrow">Modernized with Vite</p>
+          <img className="auth-logo" src={seavoLogo} alt="SEAVO" />
           <h1>研发部题库</h1>
-          <p>沿用现有数据结构与权限体系，升级为现代前端交互层。</p>
+          <p>使用公司邮箱或姓名登录，开始学习与考试。</p>
         </div>
         <form className="auth-form" onSubmit={handleSubmit}>
           <label>
-            用户名
+            公司邮箱或姓名
             <input value={username} onChange={(event) => setUsername(event.target.value)} />
           </label>
           <label>
@@ -48,13 +50,15 @@ export function LoginPage() {
               onChange={(event) => setPassword(event.target.value)}
             />
           </label>
+          {(location.state as { registered?: boolean } | null)?.registered ? <div className="status-note">注册成功，请使用公司邮箱或姓名登录。</div> : null}
           {error ? <div className="error-banner">{error}</div> : null}
           <button className="primary-button" type="submit" disabled={submitting}>
             {submitting ? '登录中...' : '登录系统'}
           </button>
-          <Link to="/user-register" className="ghost-button" style={{ display: 'inline-block', marginTop: 12 }}>
-            注册账号
-          </Link>
+          <p style={{ margin: '12px 0 0', textAlign: 'center' }}>还没有账号？请先注册</p>
+          <button type="button" className="ghost-button" onClick={() => navigate('/user-register')}>
+            注册新账号
+          </button>
         </form>
       </div>
     </div>

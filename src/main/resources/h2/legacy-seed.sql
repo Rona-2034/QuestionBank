@@ -56,3 +56,9 @@ INSERT INTO et_reference(reference_id, reference_name, memo, state) VALUES (30, 
 INSERT INTO et_answer_stage(stage_id, stage_name, create_time, creator, memo, state) VALUES (1, '轮岗两周', TIMESTAMP '2015-02-10 17:28:16', 4, '适合轮岗两周答题人', 1);
 INSERT INTO et_answer_stage(stage_id, stage_name, create_time, creator, memo, state) VALUES (2, '定岗一个月', TIMESTAMP '2015-02-13 14:53:40', 4, '适合定岗一个月答题人', 1);
 INSERT INTO et_answer_stage(stage_id, stage_name, create_time, creator, memo, state) VALUES (3, '定岗半年', TIMESTAMP '2015-02-13 14:53:40', 4, '适合定岗半年答题人', 1);
+
+
+-- Three-tier permissions: only the original admin is a super administrator.
+INSERT INTO et_role(id, authority, name, code) VALUES (4, 'ROLE_SUPER_ADMIN', '超级管理员', 'superadmin');
+UPDATE et_role SET name='业务管理员' WHERE authority='ROLE_ADMIN';
+INSERT INTO et_r_user_role(user_id, role_id) SELECT id,4 FROM et_user WHERE id=4 AND username='admin';

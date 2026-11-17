@@ -62,7 +62,11 @@ async function request<T>(input: string, init?: RequestInit): Promise<T> {
   if (!response.ok) {
     const message = typeof payload === 'object' && payload && 'messageInfo' in payload
       ? (payload as LegacyMessage).messageInfo || (payload as LegacyMessage).result
-      : `HTTP ${response.status}`;
+      : response.status === 401 ? '登录已失效，请重新登录'
+        : response.status === 403 ? '当前账号没有此操作权限' : `请求失败（${response.status}）`;
+    if (response.status === 401 && !input.startsWith('/api/app/auth/')) {
+      window.dispatchEvent(new Event('auth-expired'));
+    }
     throw new Error(message);
   }
   return payload as T;
@@ -94,13 +98,18 @@ async function requestText(input: string, init?: RequestInit): Promise<string> {
         // 响应体不是 JSON，保持原文
       }
     }
-    throw new Error(message || `HTTP ${response.status}`);
+    if (response.status === 401) window.dispatchEvent(new Event('auth-expired'));
+    throw new Error(response.status === 401 ? '登录已失效，请重新登录' : response.status === 403 ? '当前账号没有此操作权限' : message || `请求失败（${response.status}）`);
   }
   return payload;
 }
 
 export async function fetchMe(): Promise<AuthState> {
   return request<AuthState>('/api/app/auth/me');
+}
+
+export async function fetchDepartmentOptions(): Promise<{ departments: string[] }> {
+  return request<{ departments: string[] }>('/api/app/auth/options');
 }
 
 export async function login(username: string, password: string): Promise<LegacyMessage<{ username: string }>> {
@@ -114,10 +123,11 @@ export async function login(username: string, password: string): Promise<LegacyM
 }
 
 export async function registerUser(payload: {
-  username: string;
+  truename: string;
+  accountType?: 'member' | 'admin';
+  registrationCode?: string;
   password: string;
   email: string;
-  truename?: string;
   phone?: string;
   department?: string;
 }): Promise<LegacyMessage> {
@@ -134,6 +144,10 @@ export async function logout(): Promise<void> {
 
 export async function fetchHome(): Promise<HomePayload> {
   return request<HomePayload>('/api/app/home');
+}
+
+export async function fetchStudentExamPapers(paperType = 0): Promise<{ items: ExamPaper[] }> {
+  return request<{ items: ExamPaper[] }>(`/api/app/student/exam-papers?paperType=${paperType}`);
 }
 
 export async function fetchUserCenter(): Promise<UserCenterPayload> {

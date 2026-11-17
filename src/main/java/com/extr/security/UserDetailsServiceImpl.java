@@ -18,7 +18,6 @@ import com.extr.persistence.UserMapper;
 @Component("userDetailsServiceImpl")
 public class UserDetailsServiceImpl implements UserDetailsService {
 
-	private UserInfo userInfo;
 	@Autowired
 	public UserMapper userMapper;
 	
@@ -30,12 +29,6 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 	public void setUserMapper(UserMapper userMapper) {
 		this.userMapper = userMapper;
 	}
-	public UserInfo getUserInfo() {
-		return userInfo;
-	}
-	public void setUserInfo(UserInfo userInfo) {
-		this.userInfo = userInfo;
-	}
 	
 	@Override
 	public UserDetails loadUserByUsername(String username)
@@ -43,7 +36,19 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 		// TODO Auto-generated method stub
 		
 		
-		User user = userMapper.getUserByName(username);
+		String identifier = username.trim();
+		boolean email = identifier.contains("@");
+		User user = email ? null : userMapper.getUserByName(identifier.toLowerCase(java.util.Locale.ROOT));
+		if (user == null) {
+			List<Integer> ids = email ? userMapper.getUserIdsByEmail(identifier.toLowerCase(java.util.Locale.ROOT))
+					: userMapper.getUserIdsByTrueName(identifier);
+			if (ids.size() > 1) {
+				throw new org.springframework.security.authentication.AuthenticationServiceException(
+						email ? "邮箱关联了多个账号，请使用原账号登录或联系管理员" : "姓名重复，请使用公司邮箱登录");
+			}
+			if (ids.size() == 1) user = userMapper.getUserById(ids.get(0));
+		}
+		if (user == null && email) user = userMapper.getUserByName(identifier.toLowerCase(java.util.Locale.ROOT));
 		if(user == null)
 			throw new UsernameNotFoundException("user not found!");
 		List<Role> roleList = userMapper.getRoleListByUserId(user.getId(),null);
@@ -58,8 +63,11 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 		}
 		roles = roles.substring(0, roles.length() - 1);
 		rolesName = rolesName.substring(0, rolesName.length() - 1);
+		if (roleList.stream().anyMatch(role -> "ROLE_SUPER_ADMIN".equals(role.getAuthority()))) {
+			rolesName = "超级管理员";
+		}
 		List<GrantedAuthority> authorities = AuthorityUtils.commaSeparatedStringToAuthorityList(roles);
-		userInfo = new UserInfo(username,user.getPassword(),user.getEnabled().equals("1"),true,true,true,authorities);
+		UserInfo userInfo = new UserInfo(user.getUsername(),user.getPassword(),user.getEnabled().equals("1"),true,true,true,authorities);
 		userInfo.setRoleList(roleList);
 		userInfo.setUserid(user.getId());
 		userInfo.setTrueName(user.getTruename());

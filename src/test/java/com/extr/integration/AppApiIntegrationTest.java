@@ -31,7 +31,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
+@SpringBootTest(properties = "examxx.admin-registration-code-sha256=18b76086009fd2daad16cfccaf60843ebb207aff359ff70d64a03182d8b67914")
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 public class AppApiIntegrationTest {
@@ -294,6 +294,193 @@ public class AppApiIntegrationTest {
                 "/api/app/auth/me").session(session).header("Accept",
                 "application/json")).andExpect(status().isOk()).andReturn());
         assertFalse(Boolean.TRUE.equals(afterLogout.get("authenticated")));
+    }
+
+    @Test
+    public void permissions_shouldAllowAdminLearningButKeepAdminBoundary() throws Exception {
+        mockMvc.perform(get("/api/app/student/setting")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/app/admin/questions")).andExpect(status().isUnauthorized());
+        MockHttpSession admin = login("admin", "123456");
+        for (String endpoint : List.of("setting", "user-center", "analysis", "exam-history")) {
+            mockMvc.perform(get("/api/app/student/" + endpoint).session(admin)).andExpect(status().isOk());
+        }
+        MockHttpSession student = login("student", "123456");
+        mockMvc.perform(get("/api/app/admin/questions").session(student)).andExpect(status().isForbidden());
+        Map<String, Object> auth = readJson(mockMvc.perform(get("/api/app/auth/me").session(admin))
+                .andExpect(status().isOk()).andReturn());
+        assertTrue(((List<?>) castMap(auth.get("user")).get("authorities")).contains("ROLE_ADMIN"));
+        assertFalse(castMap(castMap(auth.get("user")).get("profile")).containsKey("password"));
+    }
+
+    @Test
+    public void registration_shouldNormalizeCompanyEmailAndIgnorePrivilegedFields() throws Exception {
+        mockMvc.perform(post("/api/app/auth/register").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"truename\":\"注册测试\",\"email\":\" New.User@SEAVO.COM \",\"password\":\"a\",\"enabled\":\"0\",\"roleListStack\":[{\"id\":1}]}"))
+                .andExpect(status().isOk());
+        MockHttpSession session = login("new.user@seavo.com", "a");
+        mockMvc.perform(get("/api/app/student/setting").session(session)).andExpect(status().isOk());
+        mockMvc.perform(get("/api/app/admin/questions").session(session)).andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/app/auth/register").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"truename\":\"注册测试\",\"email\":\"NEW.USER@SEAVO.COM\",\"password\":\"b\"}"))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    public void registration_shouldRejectOtherDomainsAndMissingPasswords() throws Exception {
+        for (String email : List.of("x@gmail.com", "x@seavo.com.evil.org", "x@@seavo.com", "@seavo.com", "")) {
+            mockMvc.perform(post("/api/app/auth/register").contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(Map.of("email", email, "password", "a"))))
+                    .andExpect(status().isBadRequest());
+        }
+        for (String password : List.of("", "  ", "x".repeat(41))) {
+            mockMvc.perform(post("/api/app/auth/register").contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(Map.of("email", "valid@seavo.com", "password", password))))
+                    .andExpect(status().isBadRequest());
+        }
+        mockMvc.perform(post("/api/app/auth/register").contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    public void memberCreationAndDisable_shouldMatchFrontendActions() throws Exception {
+        MockHttpSession admin = login("admin", "123456");
+        Map<String, Object> created = readJson(mockMvc.perform(post("/api/app/admin/users").session(admin)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\":\" NewMember \",\"email\":\"member@seavo.com\",\"password\":\"a\",\"department\":\"测试小组\"}"))
+                .andExpect(status().isOk()).andReturn());
+        assertEquals("success", created.get("result"));
+        MockHttpSession member = login("newmember", "a");
+        Map<String, Object> me = readJson(mockMvc.perform(get("/api/app/auth/me").session(member)).andReturn());
+        int id = ((Number) castMap(me.get("user")).get("userid")).intValue();
+        mockMvc.perform(post("/api/app/admin/users/" + id + "/disable").session(admin)).andExpect(status().isOk());
+        mockMvc.perform(post("/api/app/auth/login").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\":\"newmember\",\"password\":\"a\"}")).andExpect(status().isUnauthorized());
+        mockMvc.perform(post("/api/app/admin/users/" + id + "/enable").session(admin)).andExpect(status().isOk());
+        login("newmember", "a");
+    }
+
+    @Test
+    public void memberCenterAndExamList_shouldShowRealNameAndPublishedPapers() throws Exception {
+        MockHttpSession session = login("student", "123456");
+        Map<String, Object> saved = readJson(mockMvc.perform(post("/api/app/student/setting").session(session)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"truename\":\"测试姓名\"}"))
+                .andExpect(status().isOk()).andReturn());
+        assertEquals("success", saved.get("result"));
+        Map<String, Object> center = readJson(mockMvc.perform(get("/api/app/student/user-center").session(session))
+                .andExpect(status().isOk()).andReturn());
+        assertEquals("测试姓名", center.get("trueName"));
+        Map<String, Object> papers = readJson(mockMvc.perform(get("/api/app/student/exam-papers").session(session))
+                .andExpect(status().isOk()).andReturn());
+        assertEquals(1, castList(papers.get("items")).size());
+        try (Connection connection = dataSource.getConnection(); java.sql.Statement statement = connection.createStatement()) {
+            statement.executeUpdate("UPDATE et_exam_paper SET status=0");
+        }
+        Map<String, Object> unpublished = readJson(mockMvc.perform(get("/api/app/student/exam-papers").session(session))
+                .andExpect(status().isOk()).andReturn());
+        assertTrue(castList(unpublished.get("items")).isEmpty());
+    }
+
+    @Test
+    public void administratorRegistration_shouldRequireCodeAndGrantExistingAdminRole() throws Exception {
+        for (String code : List.of("", "incorrect", "x".repeat(129))) {
+            mockMvc.perform(post("/api/app/auth/register").contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(Map.of("email", "new.admin@seavo.com",
+                            "password", "a", "accountType", "admin", "registrationCode", code))))
+                    .andExpect(status().isBadRequest());
+        }
+        mockMvc.perform(post("/api/app/auth/register").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"truename\":\"注册测试\",\"email\":\"new.admin@seavo.com\",\"password\":\"a\",\"accountType\":\"admin\"}"))
+                .andExpect(status().isBadRequest());
+        try (Connection connection = dataSource.getConnection(); java.sql.Statement statement = connection.createStatement();
+                java.sql.ResultSet rows = statement.executeQuery("SELECT COUNT(*) FROM et_user WHERE username='new.admin@seavo.com'")) {
+            rows.next(); assertEquals(0, rows.getInt(1));
+        }
+        mockMvc.perform(post("/api/app/auth/register").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"truename\":\"注册测试\",\"email\":\"new.admin@seavo.com\",\"password\":\"a\",\"accountType\":\"admin\",\"registrationCode\":\"test-admin-invite\"}"))
+                .andExpect(status().isOk());
+        MockHttpSession session = login("new.admin@seavo.com", "a");
+        Map<String, Object> me = readJson(mockMvc.perform(get("/api/app/auth/me").session(session)).andReturn());
+        assertEquals(List.of("ROLE_ADMIN"), castMap(me.get("user")).get("authorities"));
+        for (String endpoint : List.of("questions", "exam-papers", "users")) {
+            mockMvc.perform(get("/api/app/admin/" + endpoint).session(session)).andExpect(status().isOk());
+        }
+        mockMvc.perform(get("/api/app/admin/system-config").session(session)).andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/app/auth/register").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"truename\":\"注册测试\",\"email\":\"invalid@seavo.com\",\"password\":\"a\",\"accountType\":\"superadmin\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    public void threeTierBoundary_shouldBlockRoleAndTargetBypasses() throws Exception {
+        MockHttpSession root = login("admin", "123456");
+        mockMvc.perform(post("/api/app/auth/register").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"truename\":\"注册测试\",\"email\":\"business@seavo.com\",\"password\":\"a\",\"accountType\":\"admin\",\"registrationCode\":\"test-admin-invite\"}"))
+                .andExpect(status().isOk());
+        MockHttpSession business = login("business@seavo.com", "a");
+        Map<String, Object> businessMe = readJson(mockMvc.perform(get("/api/app/auth/me").session(business)).andReturn());
+        int businessId = ((Number) castMap(businessMe.get("user")).get("userid")).intValue();
+        for (String endpoint : List.of("questions", "exam-papers", "fields", "users?roleId=3")) {
+            mockMvc.perform(get("/api/app/admin/" + endpoint).session(business)).andExpect(status().isOk());
+        }
+        for (String endpoint : List.of("system-config", "users?roleId=1", "users?roleId=4")) {
+            mockMvc.perform(get("/api/app/admin/" + endpoint).session(business)).andExpect(status().isForbidden());
+        }
+        mockMvc.perform(post("/api/app/admin/admins").session(business).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\":\"forbidden\",\"email\":\"x@seavo.com\",\"password\":\"a\"}"))
+                .andExpect(status().isForbidden());
+        for (String action : List.of("enable", "disable")) {
+            mockMvc.perform(post("/api/app/admin/users/4/" + action).session(business)).andExpect(status().isForbidden());
+            mockMvc.perform(post("/api/app/admin/users/" + businessId + "/" + action).session(business)).andExpect(status().isForbidden());
+            mockMvc.perform(post("/api/app/admin/users/4/" + action).session(root)).andExpect(status().isForbidden());
+        }
+        mockMvc.perform(get("/api/app/admin/system-config").session(root)).andExpect(status().isOk());
+        Map<String, Object> created = readJson(mockMvc.perform(post("/api/app/admin/users").session(business)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\":\"injected\",\"email\":\"injected@seavo.com\",\"password\":\"a\",\"roleListStack\":[{\"id\":4}]}"))
+                .andExpect(status().isOk()).andReturn());
+        assertEquals("success", created.get("result"));
+        MockHttpSession injected = login("injected", "a");
+        Map<String, Object> me = readJson(mockMvc.perform(get("/api/app/auth/me").session(injected)).andReturn());
+        assertEquals(List.of("ROLE_STUDENT"), castMap(me.get("user")).get("authorities"));
+        mockMvc.perform(post("/api/app/admin/admins").session(root).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\":\"managedadmin\",\"email\":\"managedadmin@seavo.com\",\"password\":\"a\",\"roleListStack\":[{\"id\":4}]}"))
+                .andExpect(status().isOk());
+        MockHttpSession managed = login("managedadmin", "a");
+        Map<String, Object> managedMe = readJson(mockMvc.perform(get("/api/app/auth/me").session(managed)).andReturn());
+        assertEquals(List.of("ROLE_ADMIN"), castMap(managedMe.get("user")).get("authorities"));
+    }
+
+    @Test
+    public void registrationNameAndLoginAliases_shouldResolveCanonicalAccountSafely() throws Exception {
+        for (String name : List.of("", "  ", "x".repeat(41))) {
+            mockMvc.perform(post("/api/app/auth/register").contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(Map.of("email", "named@seavo.com", "password", "a", "truename", name))))
+                    .andExpect(status().isBadRequest());
+        }
+        mockMvc.perform(post("/api/app/auth/register").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"named@seavo.com\",\"password\":\"a\"}"))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(post("/api/app/auth/register").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"named@seavo.com\",\"password\":\"a\",\"truename\":\" 姓名登录测试 \"}"))
+                .andExpect(status().isOk());
+        MockHttpSession byName = login("姓名登录测试", "a");
+        Map<String, Object> me = readJson(mockMvc.perform(get("/api/app/auth/me").session(byName)).andReturn());
+        assertEquals("named@seavo.com", castMap(me.get("user")).get("username"));
+        assertEquals("姓名登录测试", castMap(me.get("user")).get("trueName"));
+        login(" NAMED@SEAVO.COM ", "a");
+        mockMvc.perform(post("/api/app/auth/login").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\":\"姓名登录测试\",\"password\":\"wrong\"}"))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(post("/api/app/auth/register").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"named2@seavo.com\",\"password\":\"b\",\"truename\":\"姓名登录测试\"}"))
+                .andExpect(status().isOk());
+        Map<String, Object> duplicate = readJson(mockMvc.perform(post("/api/app/auth/login").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\":\"姓名登录测试\",\"password\":\"a\"}"))
+                .andExpect(status().isUnauthorized()).andReturn());
+        assertEquals("姓名重复，请使用公司邮箱登录", duplicate.get("messageInfo"));
+        login("named@seavo.com", "a"); login("named2@seavo.com", "b");
+        login("student@example.com", "123456");
+        login("admin", "123456");
     }
 
     private MockHttpSession login(String username, String password)

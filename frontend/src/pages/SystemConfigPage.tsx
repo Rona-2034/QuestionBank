@@ -1,3 +1,4 @@
+import { DepartmentSelect } from '../components/DepartmentSelect';
 import { FormEvent, useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { createAdminAdmin, disableAdminUser, enableAdminUser, fetchAdminSystemConfig } from '../api';
@@ -79,7 +80,7 @@ export function SystemConfigPage() {
       <section className="panel">
         <div className="panel-heading">
           <h2>{pageTitle}</h2>
-          <span>沿用旧系统网站设置分组结构</span>
+          <span>超级管理员专用；新建账号仅授予业务管理员权限</span>
         </div>
         <div className="result-list">
           <article className="practice-card">
@@ -134,8 +135,8 @@ export function SystemConfigPage() {
               <input value={phone} onChange={(event) => setPhone(event.target.value)} />
             </label>
             <label>
-              部门
-              <input value={department} onChange={(event) => setDepartment(event.target.value)} />
+              部门小组
+              <DepartmentSelect value={department} onChange={setDepartment} />
             </label>
             <button className="primary-button" type="submit">
               新增管理员
@@ -172,14 +173,14 @@ export function SystemConfigPage() {
                     <td>{item.truename || '-'}</td>
                     <td>{item.email || '-'}</td>
                     <td>{item.enabled === '1' ? '启用' : '禁用'}</td>
-                    <td>
+                    <td>{item.username === 'admin' ? <span>超级管理员（受保护）</span> : <>
                       <button className="ghost-button" type="button" onClick={() => void handleDisable(item.id)}>
                         禁用
                       </button>
                       <button className="ghost-button" type="button" onClick={() => void handleEnable(item.id)}>
                         启用
                       </button>
-                    </td>
+                    </>}</td>
                   </tr>
                 ))}
               </tbody>
